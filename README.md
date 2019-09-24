@@ -23,7 +23,7 @@
 ### 第九章 高级线程管理 ###
 ### 第十章 如何编写正确的并发数据结构 ###
 ### 第十一章 并发编程应用实例 ###
-### 附录 C++11 新标准概览 ###
+### [附录 C++11 新标准概览](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/README.md) ###
 
 笔记的详细目录和完成情况请移步[《C++ 并发编程实战》目录](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/Table-of-contents.md)
 
