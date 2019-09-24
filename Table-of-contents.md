@@ -24,15 +24,15 @@
 
 ## 第三章 线程详解 ##
 
-### 3.1 [`<thread>` 头文件摘要](https://github.com/forhappy/A-Detailed-Cplusplus-Concurrency-Tutorial/blob/master/zh/chapter3-Thread/Introduction-to-Thread.md#thread-%E5%A4%B4%E6%96%87%E4%BB%B6%E6%91%98%E8%A6%81) ###
+### 3.1 [`<thread>` 头文件摘要](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter3-Thread/Introduction-to-Thread.md#thread-%E5%A4%B4%E6%96%87%E4%BB%B6%E6%91%98%E8%A6%81) ###
 
-### 3.2 [`std::thread` 详解](https://github.com/forhappy/A-Detailed-Cplusplus-Concurrency-Tutorial/blob/master/zh/chapter3-Thread/Introduction-to-Thread.md#stdthread-%E8%AF%A6%E8%A7%A3) ###
+### 3.2 [`std::thread` 详解](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter3-Thread/Introduction-to-Thread.md#stdthread-%E8%AF%A6%E8%A7%A3) ###
 
-### 3.3 [`std::this_thread` 命名空间中相关辅助函数介绍](https://github.com/forhappy/A-Detailed-Cplusplus-Concurrency-Tutorial/blob/master/zh/chapter3-Thread/Introduction-to-Thread.md#stdthis_thread-%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%AD%E7%9B%B8%E5%85%B3%E8%BE%85%E5%8A%A9%E5%87%BD%E6%95%B0%E4%BB%8B%E7%BB%8D) ###
+### 3.3 [`std::this_thread` 命名空间中相关辅助函数介绍](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter3-Thread/Introduction-to-Thread.md#stdthis_thread-%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%AD%E7%9B%B8%E5%85%B3%E8%BE%85%E5%8A%A9%E5%87%BD%E6%95%B0%E4%BB%8B%E7%BB%8D) ###
 
 ### 3.4 `std::thread` 与 Pthread 线程对比 ###
 
-### 3.5 [资料汇](https://github.com/forhappy/A-Detailed-Cplusplus-Concurrency-Tutorial/blob/master/zh/chapter3-Thread/web-resources.md "资料汇") ###
+### 3.5 [资料汇](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter3-Thread/web-resources.md) ###
 
 
 ##第四章 互斥量与锁 ##
