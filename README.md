@@ -9,7 +9,7 @@
 - 自我激励和提高。写该笔记的另一个目的是自我激励和提高。和大部分人一样，本人也是 C++ 菜鸟一枚，在创作本书的过程中我会查阅大量资料，时间长了，自己学到的东西就慢慢积累多了。同时，在写作的时候为了表达清楚和准确，个别语句我会不断推敲，对自己的思维和语言表达能力很有帮助的。最后我坚信： 菜鸟都一样(因为什么都不会)，牛人各有各的不同。将之前学习的笔记从word->git。将部分学习敲过的sln中代码取关键细微 的 code移植到git项目当中。
 - 自己面试复习以备后续之用。树洞。
 
-![封面](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/chapter1/1.png)
+![封面](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/chapter1/fengmian.png)
 # 笔记目录(只列出一级目录) #
 
 ### 第一章 并发编程基础 ###
