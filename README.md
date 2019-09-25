@@ -1,5 +1,4 @@
 ﻿# 写作动机 #
-![封面](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/chapter1/fengmian.png)
 
 《C++ 并发编程实战》参考笔记是本人在空余时间写的，由于时间仓促，加上自身水平有限，不可能写的很完善，也难免出现错误，如果你发现笔记中的错误，或者有更好的想法，欢迎给我反馈，我会第一时间给予答复。后续我会坚持完善这一系列的文章。也希望感兴趣的同学和我一起完成。
 
@@ -11,6 +10,8 @@
 - 自己面试复习以备后续之用。树洞。熟悉md语法和基本git操作。
 
 >好吧 其实写这么多 也没人看
+
+![封面](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/chapter1/fengmian.png)
 
 # 笔记目录(只列出一级目录) #
 
