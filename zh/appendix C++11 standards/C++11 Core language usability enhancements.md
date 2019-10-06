@@ -634,28 +634,22 @@ std::function satisfies the requirements of CopyConstructible and CopyAssignable
 	 //std::function<void()> func_1 = []() {std::cout << "hello world" << std::endl; }; 
 	 //func_1();
 	//运行输出：he0llo world
-	struct Foo
-	{
+	struct Foo{
 		Foo(int num) : num_(num) {}
 		void print_add(int i) const { std::cout << num_ + i << '\n'; }
 		int num_;//class中private：
 	};
-	void print_num(int i)
-	{
+	void print_num(int i){
 		std::cout << i << '\n';
 	}
-	struct PrintNum //C++11结构体内能写函数了，不是纯C
-	{
-		void operator()(int i) const //const默认的是成员函数第一个隐藏参数this 非成员函数，全局函数不能在后面加const
-		{
+	struct PrintNum{//C++11结构体内能写函数了，不是纯C
+		void operator()(int i) const{//const默认的是成员函数第一个隐藏参数this 非成员函数，全局函数不能在后面加const	
 			std::cout << i << '\n';
 		}
 	};
-	struct TAdd
-	{
-		int Add(int x, int y)
-		{
-				return x + y;
+	struct TAdd{
+		int Add(int x, int y){
+			return x + y;
 		}
 	};
 	int main()
@@ -687,21 +681,19 @@ std::function satisfies the requirements of CopyConstructible and CopyAssignable
 		using std::placeholders::_1;
 		std::function<void(int)> f_add_display2 = std::bind(&Foo::print_add, foo, _1);// foo+2  绑定的是foo 
 		f_add_display2(2);
-
+		
 		// store a call to a member function and object ptr
 		std::function<void(int)> f_add_display3 = std::bind(&Foo::print_add, &foo, _1);// foo+3
 		f_add_display3(3);
-
+		
 		std::function<int(TAdd *, int, int)> f = &TAdd::Add;
 		TAdd tAdd;
 		std::cout << f(&tAdd, 2, 3) << std::endl;  // 如果前面的模板参数为传值或引用，直接传入tAdd即可
-		//======> std::function<int(TAdd *, int, int)> f = std::bind(&TAdd::Add ,&tAdd, _1, 3);
-
+		//======> std::function<int(TAdd *, int, int)> f = std::bind(&TAdd::Add ,&tAdd, _1, _2);=/===>f(2,3)
 
 		// store a call to a function object
 		std::function<void(int)> f_display_obj = PrintNum();
 		f_display_obj(18);
-
 		system("pause");
 		return 0;
 	}
