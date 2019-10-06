@@ -84,7 +84,7 @@ Boostcon:
 10. 垃圾回收机制
 11. 属性
 
-## 5. C++ 标准库的变更 ##
+## 5. [C++ 标准库的变更](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/C%2B%2B11%20C%2B%2B%20standard%20library%20changes.md) ##
 
 本小节主要包括：
 
