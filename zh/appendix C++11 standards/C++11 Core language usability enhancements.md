@@ -623,3 +623,97 @@ C++11 引入了一种特别的 "枚举类"，可以避免上述的问题。使�
     };
 
 ### 3.15 std::Fuction<> ###
+
+Class template std::function is a general-purpose polymorphic function wrapper. Instances of std::function can store, copy, and invoke any Callable target -- functions, lambda expressions, bind expressions, or other function objects, as well as pointers to member functions and pointers to data members.The stored callable object is called the target of std::function. If a std::function contains no target, it is called empty. Invoking the target of an empty std::function results in std::bad_function_call exception being thrown.
+std::function satisfies the requirements of CopyConstructible and CopyAssignable.
+
+	#include <functional>
+	#include <iostream>
+	//std::function  <===#include <functional>
+	//保存lambda表达式
+	 //std::function<void()> func_1 = []() {std::cout << "hello world" << std::endl; }; 
+	 //func_1();
+	//运行输出：he0llo world
+	struct Foo
+	{
+		Foo(int num) : num_(num) {}
+		void print_add(int i) const { std::cout << num_ + i << '\n'; }
+		int num_;//class中private：
+	};
+	void print_num(int i)
+	{
+		std::cout << i << '\n';
+	}
+	struct PrintNum //C++11结构体内能写函数了，不是纯C
+	{
+		void operator()(int i) const //const默认的是成员函数第一个隐藏参数this 非成员函数，全局函数不能在后面加const
+		{
+			std::cout << i << '\n';
+		}
+	};
+	struct TAdd
+	{
+		int Add(int x, int y)
+		{
+				return x + y;
+		}
+	};
+	int main()
+	{
+		// store a free function
+		std::function<void(int)> f_display = print_num;
+		f_display(-9);
+
+		// store a lambda
+		std::function<void()> f_display_42 = []() { print_num(42); };
+		f_display_42();
+
+		// store the result of a call to std::bind
+		std::function<void()> f_display_31337 = std::bind(print_num, 31337);
+		f_display_31337();
+
+		// store a call to a member function
+		std::function<void(const Foo&, int)> f_add_display = &Foo::print_add;
+
+		const Foo foo(314159);
+		f_add_display(foo, 1);//314160
+		f_add_display(314159, 1);//314160// 这个居然可以，而且f11进去看一下发现先这一行Foo(int num) : num_(num) {} 在调用print_add
+
+		// store a call to a data member accessor存取器
+		std::function<int(Foo const&)> f_num = &Foo::num_;
+		std::cout << "num_: " << f_num(foo) << '\n';
+
+		// store a call to a member function and object
+		using std::placeholders::_1;
+		std::function<void(int)> f_add_display2 = std::bind(&Foo::print_add, foo, _1);// foo+2  绑定的是foo 
+		f_add_display2(2);
+
+		// store a call to a member function and object ptr
+		std::function<void(int)> f_add_display3 = std::bind(&Foo::print_add, &foo, _1);// foo+3
+		f_add_display3(3);
+
+		std::function<int(TAdd *, int, int)> f = &TAdd::Add;
+		TAdd tAdd;
+		std::cout << f(&tAdd, 2, 3) << std::endl;  // 如果前面的模板参数为传值或引用，直接传入tAdd即可
+		//======> std::function<int(TAdd *, int, int)> f = std::bind(&TAdd::Add ,&tAdd, _1, 3);
+
+
+		// store a call to a function object
+		std::function<void(int)> f_display_obj = PrintNum();
+		f_display_obj(18);
+
+		system("pause");
+		return 0;
+	}
+/*Output:
+-9
+42
+31337
+314160
+314160
+num_: 314159
+	314161
+	314162
+	5
+	18
+*/
