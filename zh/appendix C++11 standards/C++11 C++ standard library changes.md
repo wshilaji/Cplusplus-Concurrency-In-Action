@@ -10,6 +10,8 @@
 
 ### 5.5 正则表达式 ###
 
+参考[Python正则表达式操作指南](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/Python%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%93%8D%E4%BD%9C%E6%8C%87%E5%8D%97%20-%20Ubuntu%E4%B8%AD%E6%96%87.pdf)
+
 ### 5.6 通用智能指针 ###
 
 ### 5.7 可扩展的随机数功能 ###
