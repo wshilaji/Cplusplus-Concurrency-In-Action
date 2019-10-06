@@ -468,76 +468,87 @@ Ret 的类型由 LHS 与 RHS 相加之后的结果的类型来决定。 即使�
 
 ### 3.9 空指针常量(nullptr) ###
 
-C++03 标准中的 NULL 是一个与实现相关的空指针常量，即：
+在C语言中，我们使用NULL表示空指针，也就是我们可以写如下代码：
 
-    #define NULL /*implementation-defined*/
+    int *i = NULL;
 
-某些编译器将其定义为整数 0，然而也有编译器将其定义为 `void` 指针类型: `(void*)0`。在某些情况下，这会造成二义性，例如：
+实际上在C语言中，NULL通常被定义为如下：
+
+    #define NULL ((void *)0)
+    
+也就是说NULL实际上是一个void * 的指针，然后吧void * 指针赋值给int * 和 foo_t * 的指针的时候，隐式转换成相应的类型。而如果换做一个C++编译器来编译的话是要出错的，因为C++是强类型的，void * 是不能隐式转换成其他指针类型的，所以通常情况下，编译器提供的头文件会这样定义NULL：	F12 看一看
+
+	#ifdef __cplusplus
+	#define NULL 0
+	#else
+	#define NULL ((void *)0)
+	#endif
 	
-    void func(int); // 参数为整型
-    void func(char *);// 参数为指针类型
+~~实际上C++的书都会推荐说C++中更习惯使用0来表示空指针而不是NULL，尽管NULL在C++编译器下就是0。为什么C++的书都推荐使用0而不是NULL来表示空指针呢？~~~
+在foo.h文件中声明了一个函数：
 
-    func(NULL); //二义性，无法区别调用 func(int); 还是 func(char *);
+	void bar(sometype1 a, sometype2 *b);
 
-C++11 引入了一个新的常量空指针 nullptr, 其类型为 std::nullptr_t, nullptr_t 定义如下：
+这个函数在a.cpp、b.cpp中调用了，分别是：
+a.cpp:
+bar(a, b);
+b.cpp:
+bar(a, 0);
+好的，这些代码都是正常完美的编译运行。但是突然在某个时候我们功能扩展，需要对bar函数进行扩展，我们使用了重载，现在foo.h的声明如下：
 
-    typedef decltype(nullptr) nullptr_t;
+	void bar(sometype1 a, sometype2 *b);
+	void bar(sometype1 a, int i);
 
-nullptr 是一个纯右值(prvale, pure rvalue)，有关 C++11 左值与右值的解释，可参考 [此文](http://en.cppreference.com/w/cpp/language/value_category)。
+这个时候危险了，a.cpp和b.cpp中的调用代码这个时候就不能按照期望的运行了。但是我们很快就会发现b.cpp中的0是整数，也就是在overload resolution的时候，我们知道它调用的是void bar(sometype1 a, int i)这个重载函数，于是我们可以做出如下修改让代码按照期望运行：
 
-在 C++11 中，调用 `func(nullptr)` 将会直接调用 `func(char*)`，此时不存在二义性。
+	bar(a, static_cast<sometype2 *>(0)); //这个类型转换后用这个 void bar(sometype1 a, sometype2 *b)函数
 
-nullptr 作为函数参数也通过模板类型进行转发，请参考下例：
+我知道，如果我们一开始就有bar的这两个重载函数的话，我们会在一开始就想办法避免这个问题（不使用重载）或者我们写出正确的调用代码，然而后面的这个重载函数或许是我们几个月或者很长一段时间后加上的话，那我们出错的可能性就会加大了不少。貌似我们现在说道的这些跟C++通常使用0来表示空指针没什么关系，好吧，假设我们的调用代码是这样的：foo.h:
 
-    #include <cstddef>
-    #include <iostream>
-     
-    template<class F, class A>
-    void Fwd(F f, A a)
-    {
-        f(a);
-    }
-     
-    void g(int* i)
-    {
-        std::cout << "Function g called\n";
-    }
-     
-    int main()
-    {
-        Fwd(g, nullptr);   // 正确
-        // Fwd(g, NULL);   // 错误: 没有定义 g(int)
-    }
+	void bar(sometype1 a, sometype2 *b);
+	
+a.cpp:
 
-如果一个函数存在多种指针类型的重载，建议提供一个 std::nullptr_t 类型的重载版本。示例如下，[参考](http://en.cppreference.com/w/cpp/types/nullptr_t)：
+	bar(a, b);
+b.cpp:
 
-    #include <cstddef>
-    #include <iostream>
-     
-    void f(int* pi)
-    {
-       std::cout << "Pointer to integer overload\n";
-    }
-     
-    void f(double* pd)
-    {
-       std::cout << "Pointer to double overload\n";
-    }
-     
-    void f(std::nullptr_t nullp)
-    {
-       std::cout << "null pointer overload\n";
-    }
-     
-    int main()
-    {
-        int* pi; double* pd;
-     
-        f(pi);
-        f(pd);
-        f(nullptr);  // would be ambiguous without void f(nullptr_t)
-        // f(NULL);  // ambiguous overload: all three functions are candidates
-    }
+	bar(a, NULL);
+
+当bar的重载函数在后面加上来了之后，我们会发现出错了，但是出错的时候，我们找到b.cpp中的调用代码也很快可能忽略过去了。因为我们用的是NULL空指针啊，应该是调用的void bar(sometype1 a, sometype2 * b)这个重载函数啊。实际上NULL在C++中就是0，写NULL这个反而会让你没那么警觉，因为NULL不够“明显”，而这里如果是使用0来表示空指针，那就会够“明显”，因为0是空指针，它更是一个整形常量。在C++中，使用0来做为空指针会比使用NULL来做空指针会让你更加警觉。
+~~C++ 11的nullptr~~ 虽然上面我们说明了0比NULL可以让我们更加警觉，但是我们并没有避免这个问题。这个时候C++ 11的nullptr就很好的解决了这个问题，
+我们在C++ 11中使用nullptr来表示空指针，这样最早的代码是这样的。在我们后来把bar的重载加上了之后，代码是这样：
+foo.h：
+
+	void bar(sometype1 a, sometype2 *b);
+	void bar(sometype1 a, int i);
+
+b.cpp：
+
+	bar(a, b);
+	bar(a, nullptr);
+
+这时候，我们的代码还是能够如预期的一样正确运行。
+在没有C++ 11的nullptr的时候，我们怎么解决避免这个问题呢？我们可以自己实现一个（《Imperfect C++》上面有一个实现）
+
+	const
+	class nullptr_t
+	{
+	public:
+		template<class T>
+		inline operator T*() const
+		{
+			return 0;
+		}
+
+		template<class C, class T>
+		inline operator T C::*() const
+		{
+			return 0;
+		}
+
+	private:
+		void operator&() const;
+	} nullptr = {};	
 
 ### 3.10 强类型枚举 ###
 
