@@ -14,6 +14,36 @@
 
 ### 5.6 通用智能指针 ###
 
+~~Differences between unique_ptr and shared_ptr ?????~~
+__unique_ptr and shared_ptr__  这两个类都是智能指针，这意味着当不再可以引用该对象时，它们将自动（在大多数情况下）释放它们所指向的对象。两者之间的区别在于每种类型可以引用一个资源有多少个不同的指针。
+
+unique_ptr开销很小，是首选的轻质智能指针。其类型为 __template <typename D, typename Deleter> class unique_ptr__;，因此它取决于两个模板参数。unique_ptr也是auto_ptr想在旧的C ++中实现的功能，但由于该语言的局限性而无法实现。使用时unique_ptr，最多只能有一个unique_ptr指向任何一种资源中的a。当unique_ptr被破坏，资源被自动收回。由于unique_ptr任何资源只能有一个，因此任何尝试复制资源a的unique_ptr都会导致编译时错误。它不可复制，但可以移动。将指针包装到中unique_ptr时，不能有的多个副本unique_ptr。例如，此代码是非法的：
+
+    //unique_ptr& operator=(const unique_ptr&) = delete;
+    unique_ptr<T> myPtr(new T);       // Okay
+    unique_ptr<T> myOtherPtr = myPtr; // Error: Can't copy unique_ptr
+    
+[unique_ptr](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/pic/5.4.1.png)
+然而，unique_ptr可移动使用新的移动语义：
+
+    //unique_ptr(unique_ptr&& u) noexcept;移动构造函数	
+    unique_ptr<T> myPtr(new T);                  // Okay
+    unique_ptr<T> myOtherPtr = std::move(myPtr); // Okay, resource now stored in myOtherPtr
+    
+同样，您可以执行以下操作：
+
+     unique_ptr<T> MyFunction() {
+        unique_ptr<T> myPtr(/* ... */);
+        /* ... */
+        return myPtr;
+    }
+
+这种idiom的意思是“我正在向您返回托管资源managed resource。如果您未明确捕获capture返回值，则将清除该资源cleaned up。如果您这样做了，那么您现在对该资源具有独占所有权exclusive ownership of resource” 这样，~~您可以认为unique_ptr是的更安全，更好的替代auto_ptr。~~
+
+__unique_ptr在删除器__ 方面可能会有些麻烦。shared_ptr只要它是使用创建的，它将始终做“正确的事情” make_shared。但是，如果创建了 __unique_ptr<Derived>，然后将其转换为unique_ptr<Base>__ ，并且如果Derived是virtual而Base不是，则指针将通过错误的类型删除，并且可能存在未定义的行为。可以在中使用适当的deleteer-type在unique_ptr<T, DeleterType>中修复此问题，但默认设置是使用高风险版本，因为它效率更高。
+>
+__shared_ptr__ 是共享所有权的智能指针。都是copyable和movable。多个智能指针实例可以拥有相同的资源。拥有资源的最后一个智能指针一旦超出范围，资源将被释放。
+
 ### 5.7 可扩展的随机数功能 ###
 
 ### 5.8 包装引用 ###
