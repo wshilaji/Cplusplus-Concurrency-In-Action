@@ -55,7 +55,7 @@ unique_ptr开销很小，是首选的轻质智能指针。其类型为 __templat
     unique_ptr<T> myPtr(new T);       // Okay
     unique_ptr<T> myOtherPtr = myPtr; // Error: Can't copy unique_ptr
     
-[unique_ptr](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/pic/5.4.1.png)
+![unique_ptr](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/pic/5.4.1.png)
 然而，unique_ptr可移动使用新的移动语义：
 
     //unique_ptr(unique_ptr&& u) noexcept;移动构造函数	
