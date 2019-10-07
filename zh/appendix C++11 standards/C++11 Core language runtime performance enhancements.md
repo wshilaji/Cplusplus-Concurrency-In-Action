@@ -64,15 +64,12 @@
     }
     
 为了清楚的观察临时值，在编译时设置编译选项-fno-elide-constructors用来关闭返回值优化效果。输出结果：
-
---------- | ---------
-construct | 1
-copy construct| 1
-destruct| 1
-copy construct| 2
-destruct| 2
-destruct| 3
-
+construct : 1
+copy construct: 1
+destruct: 1
+copy construct: 2
+destruct: 2
+destruct: 3
 从上面的例子中可以看到，在没有返回值优化的情况下，拷贝构造函数调用了两次，一次是GetA()函数内部创建的对象返回出来构造一个临时对象产生的，另一次是在main函数中构造a对象产生的。第二次的destruct是因为临时对象在构造a对象之后就销毁了。如果开启返回值优化的话，输出结果将是：
 construct: 1
 destruct: 1
@@ -110,12 +107,12 @@ destruct: 2
 右值引用的第三个特点
 　　T&& t在发生自动类型推断的时候，它是未定的引用类型（universal references），如果被一个左值初始化，它就是一个左值；如果它被一个右值初始化，它就是一个右值，它是左值还是右值取决于它的初始化。我们再回过头看上面的代码，对于函数template<typename T>void f(T&& t)，当参数为右值10的时候，根据universal references的特点，t被一个右值初始化，那么t就是右值；当参数为左值x时，t被一个左值引用初始化，那么t就是一个左值。需要注意的是，仅仅是当发生自动类型推导（如函数模板的类型自动推导，或auto关键字）的时候，T&&才是universal references。再看看下面的例子：
 
-    template<typename T>
-    void f(T&& param); 
-    template<typename T>
-    class Test {
-        Test(Test&& rhs); 
-    };
+        template<typename T>
+        void f(T&& param); 
+        template<typename T>
+        class Test {
+            Test(Test&& rhs); 
+        };
 
 上面的例子中，param是universal reference，rhs是Test&&右值引用，因为模版函数f发生了类型推断，而Test&&并没有发生类型推导，因为Test&&是确定的类型了。
 　　正是因为右值引用可能是左值也可能是右值，依赖于初始化，并不是一下子就确定的特点，我们可以利用这一点做很多文章，比如后面要介绍的移动语义和完美转发。　　这里再提一下引用折叠，正是因为引入了右值引用，所以可能存在左值引用与右值引用和右值引用与右值引用的折叠，C++11确定了引用折叠的规则，规则是这样的：
@@ -157,7 +154,8 @@ copy construct返回传递 的临时变量 拷贝 给 a
 destruct返回传递 的临时变量 析构
 destruct a析构
    这个例子很简单，一个带有堆内存的类，必须提供一个深拷贝拷贝构造函数，因为默认的拷贝构造函数是浅拷贝，会发生“指针悬挂”的问题。如果不提供深拷贝的拷贝构造函数，上面的测试代码将会发生错误（编译选项-fno-elide-constructors），第一次析构m_ptr是 看不见 临时变量 构造函数A():m_ptr(new int(0))的析构   拷贝构造函数的 内部的m_ptr将会被删除两次，一次是临时右值析构的时候删除一次，第二次外面构造的a对象释放时删除一次，而这两个对象的m_ptr是同一个指针，这就是所谓的指针悬挂问题。提供深拷贝的拷贝构造函数虽然可以保证正确，但是在有些时候会造成额外的性能损耗，因为有时候这种深拷贝是不必要的。比如下面的代码：
-            ![](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.png)
+      ![](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.png)
+      
 上面代码中的GetA函数会返回临时变量，然后通过这个临时变量拷贝构造了一个新的对象a，临时变量在拷贝构造完成之后就销毁了，如果堆内存很大的话，那么，这个拷贝构造的代价会很大，带来了额外的性能损失。每次都会产生临时变量并造成额外的性能损失，有没有办法避免临时变量造成的性能损失呢？答案是肯定的，C++11已经有了解决方法，看看下面的代码。如代码清单1-3所示。
 
     class A
@@ -198,8 +196,9 @@ destruct
 这个构造函数并没有做深拷贝，仅仅是将指针的所有者转移到了另外一个对象，同时，将参数对象a的指针置为空，这里仅仅是做了浅拷贝，因此，这个构造函数避免了临时变量的深拷贝问题。
 　　上面这个函数其实就是移动（拷贝）构造函数，他的参数是一个右值引用类型，这里的A&&表示右值，为什么？前面已经提到，这里没有发生类型推断，是确定的右值引用类型。为什么会匹配到这个构造函数？因为这个构造函数只能接受右值参数，而函数返回值是右值就是getA()是右值,（函数的返回值是临时的，右值，不能取s地址），所以就会匹配到这个构造函数。这里的A&&可以看作是临时值的标识，对于临时值我们仅仅需要做浅拷贝即可这里的浅拷贝只有这一步<font color=Crimson> m_ptr(a.m_ptr) ->m_ptr = a.m_ptr"</font>,然后a.m_pt开辟的内存也成为了m_ptr的了，即m_ptr也指向a.m_pt开辟的内存，最后要拷贝的对象a.m_ptr = nullptr，无需再做深拷贝，从而解决了前面提到的临时变量拷贝构造产生的性能损失的问题。这就是所谓的移动语义，右值引用的一个重要作用是用来支持移动语义的。
 　　需要注意的一个细节是，我们提供移动构造函数的同时也会提供一个拷贝构造函数，以防止移动不成功的时候还能拷贝构造，使我们的代码更安全。
-　　我们知道移动语义是通过右值引用来匹配临时值的，那么，普通的左值是否也能借助移动语义来优化性能呢，那该怎么做呢？事实上C++11为了解决这个问题，提供了std::move方法来将左值转换为右值，从而方便应用移动语义。move是将对象资源的所有权从一个对象转移到另一个对象，只是转移，没有内存的拷贝，这就是所谓的move语义。如图1-1所示是深拷贝和move的区别。
-        ![图1-1](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.png)
+　　我们知道移动语义是通过右值引用来匹配临时值的，那么，普通的左值是否也能借助移动语义来优化性能呢，那该怎么做呢？事实上C++11为了解决这个问题，提供了std::move方法来将左值转换为右值，从而方便应用移动语义。move是将对象资源的所有权从一个对象转移到另一个对象，只是转移，没有内存的拷贝，这就是所谓的move语义。如图1-1所示是深拷贝和move的区别。  
+   ![图1-1](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.1.jpg)
+        
 再看看下面的例子：
 
     {
