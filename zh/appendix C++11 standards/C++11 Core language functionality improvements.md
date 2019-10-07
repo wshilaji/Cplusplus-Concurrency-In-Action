@@ -156,14 +156,14 @@ __显式默认设置的函数和已删除函数的好处__
 *	复制构造函数必须以私有方式进行声明以隐藏它，但因为它进行了完全声明，所以会阻止自动生成默认构造函数。 如果你需要默认构造函数，则必须显式定义一个（即使它不执行任何操作）。
 *	即使显式定义的默认构造函数不执行任何操作，编译器也会将它视为重要内容。 其效率低于自动生成的默认构造函数，并且会阻止 noncopyable 成为真正的 POD 类型。
 *	尽管复制构造函数和复制赋值运算符在外部代码中是隐藏的，但成员函数和 noncopyable 的友元仍可以看见并调用它们。 如果它们进行了声明但是未定义，则调用它们会导致链接器错误。
-*	虽然这是广为接受的惯例，但是除非你了解用于自动生成特殊成员函数的所有规则，否则意图不明确。在 C++11 中，不可复制的习语可通过更直接的方法实现。*
+*	虽然这是广为接受的惯例，但是除非你了解用于自动生成特殊成员函数的所有规则，否则意图不明确。在 C++11 中，不可复制的习语可通过更直接的方法实现。
 
-       struct LeafOfTree
-       {
-         LeafOfTree() =default;
-         LeafOfTree( const LeafOfTree& )=delete;
-          LeafOfTree & operator=( const LeafOfTree& )=delete;
-       };
+            struct LeafOfTree
+            {
+              LeafOfTree() =default;
+              LeafOfTree( const LeafOfTree& )=delete;
+              LeafOfTree & operator=( const LeafOfTree& )=delete;
+            };
     
 请注意如何解决与 C++11 之前的惯例有关的问题：
 * 仍可通过声明复制构造函数来阻止生成默认构造函数，但可通过将其显式设置为默认值进行恢复。
