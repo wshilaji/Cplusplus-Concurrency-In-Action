@@ -10,7 +10,29 @@
 
 ### 4.5 线程本地存储 ###
 
-### 4.6 显式地使用或禁用某些特殊成员函数（构造函数，拷贝构造，赋值操作符，析构等） ###
+### 4.6 特殊成员函数 ###
+
+ 一个类，只有数据成员时
+ 
+        class DataOnly {
+        private:
+            int  data_;
+        };
+        
+C++98 编译器会隐式的产生四个函数：缺省构造函数，析构函数，拷贝构造函数 和 拷贝赋值算子，它们称为特殊成员函数 (special member function) 在 C++11 中，除了上面四个外，特殊成员函数还有两个：移动构造函数 和 移动赋值算子。
+
+        class DataOnly {
+        public:
+            DataOnly ()                  // default constructor
+            ~DataOnly ()                 // destructor
+            DataOnly (const DataOnly & rhs)         　 　  // copy constructor
+            DataOnly & operator=(const DataOnly & rhs)    // copy assignment operator
+            DataOnly (const DataOnly && rhs)         // C++11, move constructor
+            DataOnly & operator=(DataOnly && rhs)    // C++11, move assignment operator
+        };
+
+
+### 4.7 显式地使用或禁用某些特殊成员函数（构造函数，拷贝构造，赋值操作符，析构等） ###
 
 #### final 说明符 ####
 
@@ -144,6 +166,36 @@ __显式默认设置的函数和已删除函数的好处__
 
 #### 已删除的函数 ####
 
+ 作为开发方，如果不想让用户使用某个成员函数，不声明即可；但对于特殊成员函数，则是另一种情况。例如，设计一个树叶类
+ 
+         class LeafOfTree{ ... };
+莱布尼茨说过，“世上没有两片完全相同的树叶” (Es gibt keine zwei Blätter, die gleich bleiben)，因此，对于一片独一无二的树叶，下面的操作是错误的：
+
+        LeafOfTree  leaf1;
+        LeafOfTree  leaf2;
+        LeafOfTree  leaf3(leaf1);     // attempt to copy Leaf1 — should not compile!
+        Leaf1 = Leaf2;              // attempt to copy Leaf2 — should not compile!
+        
+因此，此时需要避免使用 “拷贝构造函数” 和 “拷贝赋值算子”
+
+~~C++98 中，可声明这些特殊成员函数为私有型 (private)，且不实现该函数，具体如下：~~
+
+        class LeafOfTree{
+        private:
+            LeafOfTree( const LeafOfTree& );    　　　　　　 // not defined
+            LeafOfTree & operator=( const LeafOfTree& );    // not defined
+        };
+        
+  程序中如果调用了 LeafOfTree 类的拷贝构造函数 (或拷贝赋值操作符)，则在编译时，会出现链接错误 (link-time error)
+  为了将报错提前到编译时 (compile time)，可增加了一个基类 Uncopyable，并将拷贝构造函数和拷贝赋值算子声明为私有型，具体可参见 《Effective C++_3rd item 6》 在谷歌 C++ 编码规范中，使用了一个宏定义来简化，如下所示：
+  
+        // A macro to disallow the copy constructor and operator= functions 
+        // This should be used in the priavte:declarations for a class
+        #define    DISALLOW_COPY_AND_ASSIGN(TypeName) \
+            TypeName(const TypeName&);                \
+            TypeName& operator=(const TypeName&)
+
+
 可以删除特殊成员函数以及普通成员函数和非成员函数，以阻止定义或调用它们。 通过删除特殊成员函数，可以更简洁地阻止编译器生成不需要的特殊成员函数。 必须在声明函数时将其删除；不能在这之后通过声明一个函数然后不再使用的方式来将其删除。
 
     struct widget
@@ -157,13 +209,32 @@ __显式默认设置的函数和已删除函数的好处__
     // deleted overload prevents call through type promotion of float to double from succeeding.
     void call_with_true_double_only(float) =delete;
     void call_with_true_double_only(double param) { return; }
-    
-请注意，在上述示例中，调用call_with_true_double_only通过使用 __float__  参数会导致编译器错误，但调用call_with_true_double_only通过int参数不会; 在 __int__ 的情况下，该参数将从提升 __int__ 到 __double__ 并成功调用 __double__ 版本的函数即使这不可能的用途是什么。 若要确保使用非双精度自变量对此函数进行的任何调用均会导致编译器错误，你可以声明已删除的函数的模板版本。
-
     template < typename T >
     void call_with_true_double_only(T) =delete; //prevent call through type promotion of any T to double from succeeding.
     void call_with_true_double_only(double param) { return; } // also define for const double, double&, etc. as needed.
+    
+请注意，在上述示例中，调用call_with_true_double_only通过使用 __float__  参数会导致编译器错误，但调用call_with_true_double_only通过 __int__ 参数不会; 在 __int__ 的情况下，该参数将从提升 __int__ 到 __double__ 并成功调用 __double__ 版本的函数即使这不可能的用途是什么。 若要确保使用非双精度自变量对此函数进行的任何调用均会导致编译器错误，你可以声明已删除的函数的模板版本。 
+    
+delete在模板特化。在模板特例化中，也可以用 delete 来过滤一些特定的形参类型。例如，Widget 类中声明了一个模板函数，当进行模板特化时，要求禁止参数为 void* 的函数调用。如果按照 C++98 的 “私有不实现“ 思路，应该是将特例化的函数声明为私有型，如下所示：
 
+    class Widget {
+    public:
+        template<typename T>
+        void ProcessPointer(T* ptr) { … }
+    private:
+        template<>             
+        void ProcessPointer<void>(void*);    // error!
+    };
+    
+问题是，模板特化应该被写在命名空间域 (namespace scope)，而不是类域 (class scope)，因此，该方法会报错。而在 C++11 中，因为有了 delete 关键字，则可以直接在类域外，将特例化的模板函数声明为 delete， 如下所示：
+
+    class Widget {
+    public:
+        template<typename T>
+        void ProcessPointer(T* ptr) { … }
+    };
+    template<> 
+    void Widget::ProcessPointer<void>(void*) = delete; // still public, but deleted
 
 ### 4.7 long long int类型 ###
 
