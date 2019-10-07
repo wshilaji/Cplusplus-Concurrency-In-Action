@@ -170,36 +170,36 @@ __显式默认设置的函数和已删除函数的好处__
 
 继承构造。C++ 11允许派生类继承基类的构造函数（默认构造函数、复制构造函数、移动构造函数除外）。注意：继承的构造函数只能初始化基类中的成员变量，不能初始化派生类的成员变量。如果基类的构造函数被声明为私有，或者派生类是从基类中虚继承，那么不能继承构造函数。一旦使用继承构造函数，编译器不会再为派生类生成默认构造函数
 
-  class A
-  {
-  public:
-      A(int i) { std::cout << "i = " << i << std::endl; }
-      A(double d, int i) {}
-      A(float f, int i, const char* c) {}
-      // ...
-  };
-  class B : public A
-  {
-  public:
-      using A::A; // 继承构造函数
-      // ...
-      virtual void ExtraInterface(){}
-  };
+      class A
+      {
+      public:
+          A(int i) { std::cout << "i = " << i << std::endl; }
+          A(double d, int i) {}
+          A(float f, int i, const char* c) {}
+          // ...
+      };
+      class B : public A
+      {
+      public:
+          using A::A; // 继承构造函数
+          // ...
+          virtual void ExtraInterface(){}
+      };
   
 委托构造和继承构造函数类似，委托构造函数也是C++11中对C++的构造函数的一项改进，其目的也是为了减少程序员书写构造函数的时间。// 如果一个类包含多个构造函数，C++ 11允许在一个构造函数中的定义中使用另一个构造函数，但这必须通过初始化列表进行操作，如下：
 
-  class Info
-  {
-  public:
-      Info() : Info(1) { }    // 委托构造函数
-      Info(int i) : Info(i, 'a') { } // 既是目标构造函数，也是委托构造函数
-      Info(char e): Info(1, e) { }
-  private:
-      Info(int i, char e): type(i), name(e) { /\* 其它初始化 \*/} // 目标构造函数      
-      int  type;
-      char name;
-      // ...
-  };
+      class Info
+      {
+      public:
+          Info() : Info(1) { }    // 委托构造函数
+          Info(int i) : Info(i, 'a') { } // 既是目标构造函数，也是委托构造函数
+          Info(char e): Info(1, e) { }
+      private:
+          Info(int i, char e): type(i), name(e) { /\* 其它初始化 \*/} // 目标构造函数      
+          int  type;
+          char name;
+          // ...
+      };
 
 ### 4.9 静态断言 assertions ###
 
