@@ -2,165 +2,261 @@
 
 ### 1.1 右值引用和 move 语义 ###
 
-> 本小节主要参考了 IBM developerWorkds 上的一篇博文: 《C++11 标准新特性: 右值引用与转移语义》: [http://www.ibm.com/developerworks/cn/aix/library/1307_lisl_c11/](http://www.ibm.com/developerworks/cn/aix/library/1307_lisl_c11/)，在此特向原作者表示感谢。
+> 本小节主要参考了 qicosmos 上的一篇博文: 《从4行代码看右值引用》: [https://www.cnblogs.com/qicosmos/p/4283455.html](https://www.cnblogs.com/qicosmos/p/4283455.html)，在此特向原作者表示感谢。
 
-右值引用 (Rvalue Referene) 是 C++11 标准中引入的新特性 , 它实现了转移语义(Move Sementics)和完美转发(Perfect Forwarding)。它的主要目的有两个方面：
+##### 概述 #####
 
-- 消除两个对象交互时不必要的对象拷贝，节省运算存储资源，提高效率
-- 能够更简洁明确地定义泛型函数。
+右值引用的概念有些读者可能会感到陌生，其实他和C++98/03中的左值引用有些类似，例如，c++98/03中的左值引用是这样的：
 
-C++( 包括 C) 中所有的表达式和变量要么是左值，要么是右值。通俗的左值的定义就是非临时对象，那些可以在多条语句中使用的对象。所有的变量都满足这个定义，在多条代码中都可以使用，都是左值。右值是指临时的对象，它们只在当前的语句中有效。
-
-在 C++11 之前，右值是不能被引用的，最大限度就是利用常量引用来绑定一个右值，如:
-
-    const int &a = 1; 
-
-在这种情况下，右值不能被修改的。但是实际上右值是可以被修改的，如:
-
-    T().set().get(); 
-
-T 是一个类，set 是一个函数为 T 中的一个变量赋值，get 用来取出这个变量的值。在这句中，T() 生成一个临时对象，就是右值，set() 修改了变量的值，也就修改了这个右值。
-
-既然右值可以被修改，那么就可以实现右值引用。右值引用能够方便地解决实际工程中的问题，实现非常有吸引力的解决方案。
-
-左值的声明符号为 ”&”， 为了和左值区分，右值的声明符号为 ”&&”。
-
-如果临时对象通过一个接受右值的函数传递给另一个函数时，就会变成左值，因为这个临时对象在传递过程中，变成了命名对象。如下示例程序：
-
-    void process_value(int& i) { 
-        std::cout << "LValue processed: " << i << std::endl; 
-    } 
+    int i = 0;
+    int& j = i;这个i是左值
     
-    void process_value(int&& i) { 
-        std::cout << "RValue processed: " << i << std::endl; 
-    } 
+这里的int&是对左值进行绑定（但是int&却不能绑定右值），相应的，对右值进行绑定的引用就是右值引用，他的语法是这样的A&&，通过双引号来表示绑定类型为A的右值。通过&&我们就可以很方便的绑定右值了，比如我们可以这样绑定一个右值：
     
-    void forward_value(int&& i) { 
-        process_value(i); 
-    } 
+    int&& i = 0;
+
+   这里我们绑定了一个右值0，关于右值的概念会在后面介绍。右值引用是C++11中新增加的一个很重要的特性，他主是要用来解决C++98/03中遇到的两个问题，第一个问题就是临时对象非必要的昂贵的拷贝操作，第二个问题是在模板函数中如何按照参数的实际类型进行转发。通过引入右值引用，很好的解决了这两个问题，改进了程序性能，后面将会详细介绍右值引用是如何解决这两个问题的。
+　 和右值引用相关的概念比较多，比如：右值、纯右值、将亡值、universal references、引用折叠、移动语义、move语义和完美转发等等。很多都是新概念，对于刚学习C++11右值引用的初学者来说，可能会觉得右值引用过于复杂，概念之间的关系难以理清。
+右值引用实际上并没有那么复杂，其实是关于4行代码的故事，通过简单的4行代码我们就能清晰的理解右值引用相关的概念了。本文希望带领读者通过4行代码来理解右值引用相关的概念，理清他们之间的关系，并最终能透彻地掌握C++11的新特性--右值引用
+
+#### 四行代码的故事 ####
+
+#### 第1行代码的故事 ####
+---
+
+    int i = getVar();
+
+上面的这行代码很简单，从getVar()函数获取一个整形值，然而，这行代码会产生几种类型的值呢？答案是会产生两种类型的值，一种是左值i，一种是函数getVar()返回的临时值，这个临时值在表达式结束后就销毁了，而左值i在表达式结束后仍然存在，这个临时值就是右值，具体来说是一个纯右值，右值是不具名的。区分左值和右值的一个简单办法是：看能不能对表达式取地址，如果能，则为左值，否则为右值。所有的具名变量或对象都是左值，而匿名变量则是右值，比如，简单的赋值语句：
     
-    int main() { 
-        int a = 0; 
-        process_value(a); 
-        process_value(1); 
-        forward_value(2); 
+    int i = 0;
+    
+在这条语句中，i 是左值，0 是字面量（！！！），就是右值。在上面的代码中，i 可以被引用，0 就不可以了。具体来说上面的表达式中等号右边的0是纯右值（prvalue），在C++11中所有的值必属于左值、将亡值、纯右值三者之一。比如，非引用返回的临时变量、运算表达式产生的临时变量、原始字面量（数字int i = 42  42就是字面量）和lambda表达式等都是纯右值。而将亡值是C++11新增的、与右值引用相关的表达式，比如，将要被移动的对象、T&&函数返回值、std::move返回值和转换为T&&的类型的转换函数的返回值等。关于将亡值我们会在后面介绍，先看下面的代码：
+
+    int j = 5;
+    auto f = []{return 5;};
+
+上面的代码中5是一个原始字面量， \[]{return 5;}是一个lambda表达式，都是属于纯右值，他们的特点是在表达式结束之后就销毁了。通过地行代码我们对右值有了一个初步的认识，知道了什么是右值，接下来再来看看第二行代码。
+
+#### 第2行代码的故事 ####
+
+    T&& k = getVar();
+    
+   第二行代码和第一行代码很像，只是相比第一行代码多了“&&”，他就是右值引用，我们知道左值引用是对左值的引用，那么，对应的，对右值的引用就是右值引用，而且右值是匿名变量，我们也只能通过引用的方式来获取右值。虽然第二行代码和第一行代码看起来差别不大，但是实际上语义的差别很大，这里，getVar()产生的临时值不会像第一行代码那样，在表达式结束之后就销毁了，而是会被“续命”，他的生命周期将会通过右值引用得以延续，和变量k的声明周期一样长。
+右值引用的第一个特点
+　　通过右值引用的声明，右值又“重获新生”，其生命周期与右值引用类型变量的生命周期一样长，只要该变量还活着，该右值临时量将会一直存活下去。让我们通过一个简单的例子来看看右值的生命周期。如代码清单1-1所示。
+代码清单1-1 
+
+    int g_constructCount=0;
+    int g_copyConstructCount=0;
+    int g_destructCount=0;
+    struct A
+    {
+        A(){cout<<"construct: "<<++g_constructCount<<endl;}
+        A(const A& a){cout<<"copy construct: "<<++g_copyConstructCount <<endl;}
+        ~A(){cout<<"destruct: "<<++g_destructCount<<endl;}
+    };
+    A GetA(){
+        return A();
     }
+    int main() {
+        A a = GetA();//GetA()是右值，没法被取地址，临时的 用引用去接 和元素值去接效果不同
+        return 0;
+    }
+    
+为了清楚的观察临时值，在编译时设置编译选项-fno-elide-constructors用来关闭返回值优化效果。输出结果：
 
-虽然 2 这个立即数在函数 forward_value 接收时是右值，但到了 process_value 接收时，变成了左值。
+--------- | ---------
+construct | 1
+copy construct| 1
+destruct| 1
+copy construct| 2
+destruct| 2
+destruct| 3
 
-C++03 性能上被长期被诟病的其中之一，就是其耗时且不必要的深度拷贝。深度拷贝会发生在当对象是以传值的方式传递。举例而言，`std::vector<T>` 是内部保存了 C-style 数组的一个包装，如果一个`std::vector<T>` 的临时对象被建构或是从函数返回，要将其存储只能通过生成新的 `std::vector<T>` 并且把该临时对象所有的数据复制进去。该临时对象和其拥有的内存会被摧毁。(为了讨论上的方便，这里忽略返回值优化)
+从上面的例子中可以看到，在没有返回值优化的情况下，拷贝构造函数调用了两次，一次是GetA()函数内部创建的对象返回出来构造一个临时对象产生的，另一次是在main函数中构造a对象产生的。第二次的destruct是因为临时对象在构造a对象之后就销毁了。如果开启返回值优化的话，输出结果将是：
+construct: 1
+destruct: 1
+可以看到返回值优化将会把临时对象优化掉，但这不是c++标准，是各编译器的优化规则。我们在回到之前提到的可以通过右值引用来延长临时右值的生命周期，如果上面的代码中我们通过右值引用来绑定函数返回值的话，结果又会是什么样的呢？在编译时设置编译选项-fno-elide-constructors。
 
-在 C++11，一个 `std::vector` 的 "move 构造函数" 对某个 `vector` 的右值引用可以单纯地从右值复制其内部 C-style 数组的指针到新的 `std::vector`，然后留下空的右值。这个操作不需要数组的复制，而且空的临时对象的析构也不会摧毁内存。传回 `std::vector` 临时对象的函数不需要显式地传回`std::vector<T>&&`。如果 `std::vector` 没有 move 构造函数，那么复制构造函数将被调用，以 `const std::vector<T> &` 的正常形式。 如果它确实有 move 构造函数，那么就会调用 move 构造函数，能够提高程序效率。
+    int main() {
+        A&& a = GetA();
+        return 0;
+    }
+    
+输出结果：
+construct: 1
+copy construct: 1
+destruct: 1
+destruct: 2
+通过右值引用，比之前少了一次拷贝构造和一次析构，原因在于右值引用绑定了右值，让临时右值的生命周期延长了。我们可以利用这个特点做一些性能优化，即避免临时对象的拷贝构造和析构，事实上，在c++98/03中，通过常量左值引用也经常用来做性能优化。上面的代码改成：
+    
+    const A& a = GetA();
+    
+   输出的结果和右值引用一样，因为常量左值引用是一个“万能”的引用类型，可以接受左值、右值、常量左值和常量右值。需要注意的是普通的左值引用不能接受右值，比如这样的写法是不对的：A& a = GetA();上面的代码会报一个编译错误，因为非常量左值引用只能接受左值。
+   右值引用的第二个特点
+　　右值引用独立于左值和右值。意思是右值引用类型的变量可能是左值也可能是右值。比如下面的例子：
+    
+    int&& var1 = 1;
+ 
+ var1类型为右值引用，但var1本身是左值，因为具名变量都是左值。关于右值引用一个有意思的问题是：T&&是什么，一定是右值吗？让我们来看看下面的例子：
 
-右值引用是用来支持转移语义的。转移语义可以将资源(堆，系统对象等)从一个对象转移到另一个对象，这样能够减少不必要的临时对象的创建、拷贝以及销毁，能够大幅度提高 C++ 程序的性能。临时对象的维护(创建和销毁)对性能有严重影响。
+    template<typename T>
+    void f(T&& t){}
+    f(10); //t是右值
+    int x = 10;
+    f(x); //t是左值
 
-转移语义是和拷贝语义相对的，可以类比文件的剪切与拷贝，当我们将文件从一个目录拷贝到另一个目录时，速度比剪切慢很多。
+从上面的代码中可以看到，T&&表示的值类型不确定，可能是左值又可能是右值，这一点看起来有点奇怪，这就是右值引用的一个特点。
+右值引用的第三个特点
+　　T&& t在发生自动类型推断的时候，它是未定的引用类型（universal references），如果被一个左值初始化，它就是一个左值；如果它被一个右值初始化，它就是一个右值，它是左值还是右值取决于它的初始化。我们再回过头看上面的代码，对于函数template<typename T>void f(T&& t)，当参数为右值10的时候，根据universal references的特点，t被一个右值初始化，那么t就是右值；当参数为左值x时，t被一个左值引用初始化，那么t就是一个左值。需要注意的是，仅仅是当发生自动类型推导（如函数模板的类型自动推导，或auto关键字）的时候，T&&才是universal references。再看看下面的例子：
 
-通过转移语义，临时对象中的资源能够转移其它的对象里。
+    template<typename T>
+    void f(T&& param); 
+    template<typename T>
+    class Test {
+        Test(Test&& rhs); 
+    };
 
-在现有的 C++ 机制中，我们可以定义拷贝构造函数和赋值函数。要实现转移语义，需要定义转移构造函数，还可以定义转移赋值操作符。对于右值的拷贝和赋值会调用转移构造函数和转移赋值操作符。如果转移构造函数和转移拷贝操作符没有定义，那么就遵循现有的机制，拷贝构造函数和赋值操作符会被调用。
+上面的例子中，param是universal reference，rhs是Test&&右值引用，因为模版函数f发生了类型推断，而Test&&并没有发生类型推导，因为Test&&是确定的类型了。
+　　正是因为右值引用可能是左值也可能是右值，依赖于初始化，并不是一下子就确定的特点，我们可以利用这一点做很多文章，比如后面要介绍的移动语义和完美转发。　　这里再提一下引用折叠，正是因为引入了右值引用，所以可能存在左值引用与右值引用和右值引用与右值引用的折叠，C++11确定了引用折叠的规则，规则是这样的：
+* 所有的右值引用叠加到右值引用上仍然还是一个右值引用；
+* 所有的其他引用类型之间的叠加都将变成左值引用。
 
-普通的函数和操作符也可以利用右值引用操作符实现转移语义。
+#### 第3行代码的故事 ####
 
-以一个简单的 string 类为示例，实现拷贝构造函数和拷贝赋值操作符。
+    T(T&& a) : m_val(val){ a.m_val=nullptr; }
+    
+   这行代码实际上来自于一个类的构造函数，构造函数的一个参数是一个右值引用，为什么将右值引用作为构造函数的参数呢？在解答这个问题之前我们先看一个例子。如代码清单1-2所示。代码清单1-2
 
-    class MyString { 
-    private: 
-        char* _data; 
-        size_t   _len; 
-        void _init_data(const char *s) { 
-           _data = new char[_len+1]; 
-           memcpy(_data, s, _len); 
-           _data[_len] = '\0'; 
+    class A
+    {
+    public:
+        A():m_ptr(new int(0)){cout << "construct" << endl;}
+        A(const A& a):m_ptr(new int(*a.m_ptr)) //深拷贝的拷贝构造函数
+        {
+            cout << "copy construct" << endl;
         }
-
-    public: 
-        MyString() { 
-            _data = NULL; 
-            _len = 0; 
-        } 
-   
-        MyString(const char* p) { 
-            _len = strlen (p); 
-            _init_data(p); 
-        } 
-   
-        MyString(const MyString& str) { 
-            _len = str._len; 
-            _init_data(str._data); 
-            std::cout << "Copy Constructor is called! source: " << str._data << std::endl; 
-        } 
-   
-        MyString& operator=(const MyString& str) { 
-            if (this != &str) { 
-                _len = str._len; 
-                _init_data(str._data); 
-            } 
-            std::cout << "Copy Assignment is called! source: " << str._data << std::endl; 
-            return *this; 
-        } 
-   
-        virtual ~MyString() { 
-            if (_data) free(_data); 
-       } 
-    }; 
-   
-    int main() { 
-        MyString a; 
-        a = MyString("Hello"); 
-        std::vector<MyString> vec; 
-        vec.push_back(MyString("World")); 
+        ~A(){ cout << "destruct" << endl; delete m_ptr;}
+    private:
+        int* m_ptr;
+    };
+    A GetA()
+    {
+        return A();
     }
+    int main() {
+        A a = GetA();
+        return 0;
+    }
+    
+输出：
+Construct  看不见的临时变量
+copy construct 看不见的临时变量 copy 给 返回传递 的临时变量 
+destruct 看不见的临时变量析构
+copy construct返回传递 的临时变量 拷贝 给 a 
+destruct返回传递 的临时变量 析构
+destruct a析构
+   这个例子很简单，一个带有堆内存的类，必须提供一个深拷贝拷贝构造函数，因为默认的拷贝构造函数是浅拷贝，会发生“指针悬挂”的问题。如果不提供深拷贝的拷贝构造函数，上面的测试代码将会发生错误（编译选项-fno-elide-constructors），第一次析构m_ptr是 看不见 临时变量 构造函数A():m_ptr(new int(0))的析构   拷贝构造函数的 内部的m_ptr将会被删除两次，一次是临时右值析构的时候删除一次，第二次外面构造的a对象释放时删除一次，而这两个对象的m_ptr是同一个指针，这就是所谓的指针悬挂问题。提供深拷贝的拷贝构造函数虽然可以保证正确，但是在有些时候会造成额外的性能损耗，因为有时候这种深拷贝是不必要的。比如下面的代码：
+            ![](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.png)
+上面代码中的GetA函数会返回临时变量，然后通过这个临时变量拷贝构造了一个新的对象a，临时变量在拷贝构造完成之后就销毁了，如果堆内存很大的话，那么，这个拷贝构造的代价会很大，带来了额外的性能损失。每次都会产生临时变量并造成额外的性能损失，有没有办法避免临时变量造成的性能损失呢？答案是肯定的，C++11已经有了解决方法，看看下面的代码。如代码清单1-3所示。
 
-运行结果 :
-
-    Copy Assignment is called! source: Hello 
-    Copy Constructor is called! source: World 
-
-这个 string 类已经基本满足我们演示的需要。在 main 函数中，实现了调用拷贝构造函数的操作和拷贝赋值操作符的操作。MyString(“Hello”) 和 MyString(“World”) 都是临时对象，也就是右值。虽然它们是临时的，但程序仍然调用了拷贝构造和拷贝赋值，造成了没有意义的资源申请和释放的操作。如果能够直接使用临时对象已经申请的资源，既能节省资源，有能节省资源申请和释放的时间。这正是定义转移语义的目的。
-
-我们先定义转移构造函数。
-
-    MyString(MyString&& str) { 
-        std::cout << "Move Constructor is called! source: " << str._data << std::endl; 
-        _len = str._len; 
-        _data = str._data; 
-        str._len = 0; 
-        str._data = NULL; 
+    class A
+    {
+    public:
+        A() :m_ptr(new int(0)) {cout << "construct" << endl;}
+        A(const A& a):m_ptr(new int(*a.m_ptr)) //深拷贝的拷贝构造函数
+        {
+            cout << "copy construct" << endl;
+        }
+        A(A&& a) :m_ptr(a.m_ptr)
+        {
+            a.m_ptr = nullptr;
+            cout << "move construct" << endl;
+        }
+        ~A(){ cout << "destruct" << endl ;delete m_ptr;}
+    private:
+        int* m_ptr;
+    };
+    int main(){
+        A a = GetA(); 
     } 
 
-和拷贝构造函数类似，需要注意几点：
+输出：
+construct
+move construct
+destruct
+move construct
+destruct
+destruct
+代码清单1-3和1-2相比只多了一个构造函数，输出结果表明，并没有调用拷贝构造函数，因为GetA()是右值，只调用了move construct函数，让我们来看看这个move construct函数：
 
-1. 参数（右值）的符号必须是右值引用符号，即“&&”。
-2. 参数（右值）不可以是常量，因为我们需要修改右值。
-3. 参数（右值）的资源链接和标记必须修改。否则，右值的析构函数就会释放资源。转移到新对象的资源也就无效了。
+    A(A&& a) :m_ptr(a.m_ptr)
+    {
+        a.m_ptr = nullptr;
+        cout << "move construct" << endl;
+    }
+这个构造函数并没有做深拷贝，仅仅是将指针的所有者转移到了另外一个对象，同时，将参数对象a的指针置为空，这里仅仅是做了浅拷贝，因此，这个构造函数避免了临时变量的深拷贝问题。
+　　上面这个函数其实就是移动（拷贝）构造函数，他的参数是一个右值引用类型，这里的A&&表示右值，为什么？前面已经提到，这里没有发生类型推断，是确定的右值引用类型。为什么会匹配到这个构造函数？因为这个构造函数只能接受右值参数，而函数返回值是右值就是getA()是右值,（函数的返回值是临时的，右值，不能取s地址），所以就会匹配到这个构造函数。这里的A&&可以看作是临时值的标识，对于临时值我们仅仅需要做浅拷贝即可这里的浅拷贝只有这一步<font color=Crimson> m_ptr(a.m_ptr) ->m_ptr = a.m_ptr"</font>,然后a.m_pt开辟的内存也成为了m_ptr的了，即m_ptr也指向a.m_pt开辟的内存，最后要拷贝的对象a.m_ptr = nullptr，无需再做深拷贝，从而解决了前面提到的临时变量拷贝构造产生的性能损失的问题。这就是所谓的移动语义，右值引用的一个重要作用是用来支持移动语义的。
+　　需要注意的一个细节是，我们提供移动构造函数的同时也会提供一个拷贝构造函数，以防止移动不成功的时候还能拷贝构造，使我们的代码更安全。
+　　我们知道移动语义是通过右值引用来匹配临时值的，那么，普通的左值是否也能借助移动语义来优化性能呢，那该怎么做呢？事实上C++11为了解决这个问题，提供了std::move方法来将左值转换为右值，从而方便应用移动语义。move是将对象资源的所有权从一个对象转移到另一个对象，只是转移，没有内存的拷贝，这就是所谓的move语义。如图1-1所示是深拷贝和move的区别。
+        ![图1-1](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.png)
+再看看下面的例子：
 
-现在我们定义转移赋值操作符。
+    {
+        std::list< std::string> tokens;
+        //省略初始化...
+        std::list< std::string> t = tokens; //这里存在拷贝 
+    }
+    std::list< std::string> tokens;
+    std::list< std::string> t = std::move(tokens);  //这里没有拷贝 
+    
+如果不用std::move，拷贝的代价很大，性能较低。使用move几乎没有任何代价，只是转换了资源的所有权。他实际上将左值变成右值引用，然后应用移动语义，调用移动构造函数，就避免了拷贝，提高了程序性能。如果一个对象内部有较大的对内存或者动态数组时，很有必要写move语义的拷贝构造函数和赋值函数，避免无谓的深拷贝，以提高性能。事实上，C++11中所有的容器都实现了移动语义，方便我们做性能优化。
+　　这里也要注意对move语义的误解，move实际上它并不能移动任何东西，它唯一的功能是将一个左值强制转换为一个右值引用。移动东西的还是移动构造函数中浅拷贝m_ptr = a.m_ptr。如果是一些基本类型比如int和char[10]定长数组等类型，使用move的话仍然会发生拷贝（因为没有对应的移动构造函数）。所以，move对于含资源（堆内存或句柄）的对象来说更有意义。
+  
+#### 第4行代码的故事 ####
 
-    MyString& operator=(MyString&& str) { 
-        std::cout << "Move Assignment is called! source: " << str._data << std::endl; 
-        if (this != &str) { 
-            _len = str._len; 
-            _data = str._data; 
-            str._len = 0; 
-          str._data = NULL; 
-        } 
-        return *this; 
-     } 
+    template <typename T>void f(T&& val){ foo(std::forward<T>(val)); }
 
-由此看出，编译器区分了左值和右值，对右值调用了转移构造函数和转移赋值操作符。节省了资源，提高了程序运行的效率。
+　C++11之前调用模板函数时，存在一个比较头疼的问题，如何正确的传递参数。比如： 
 
-有了右值引用和转移语义，我们在设计和实现类时，对于需要动态申请大量资源的类，应该设计转移构造函数和转移赋值函数，以提高应用程序的效率。
+    template <typename T>
+    void forwardValue(T& val)
+    {
+        processValue(val); //右值参数会变成左值 
+    }
+    template <typename T>
+    void forwardValue(const T& val)
+    {
+        processValue(val); //参数都变成常量左值引用了 
+    }
+    
+都不能按照参数的本来的类型进行转发。C++11引入了完美转发：在函数模板中，完全依照模板的参数的类型（即保持参数的左值、右值特征），将参数传递给函数模板中调用的另外一个函数。C++11中的std::forward正是做这个事情的，他会按照参数的实际类型进行转发。看下面的例子：
 
-既然编译器只对右值引用才能调用转移构造函数和转移赋值函数，而所有命名对象都只能是左值引用，如果已知一个命名对象不再被使用而想对它调用转移构造函数和转移赋值函数，也就是把一个左值引用当做右值引用来使用，怎么做呢？标准库提供了函数 std::move，这个函数以非常简单的方式将左值引用转换为右值引用。
+    void processValue(int& a){ cout << "lvalue" << endl; }
+    void processValue(int&& a){ cout << "rvalue" << endl; }
+    template <typename T>
+    void forwardValue(T&& val)
+    {
+        processValue(std::forward<T>(val)); //照参数本来的类型进行转发。
+    }
+    void Testdelcl()
+    {
+        int i = 0;
+        forwardValue(i); //传入左值 
+        forwardValue(0);//传入右值 
+    }
+输出：
+lvaue 
+rvalue
+右值引用T&&是一个universal references，可以接受左值或者右值，正是这个特性让他适合作为一个参数的路由，然后再通过std::forward按照参数的实际类型去匹配对应的重载函数，最终实现完美转发。我们可以结合完美转发和移动语义来实现一个泛型的工厂函数，这个工厂函数可以创建所有类型的对象。具体实现如下：
 
-基于安全的理由，具名的参数将永远不被认定为右值，即使它是被如此声明的；为了获得右值必须使用 `std::move<T>()`。
+    template<typename…  Args>
+    T* Instance(Args&&… args)
+    {
+        return new T(std::forward<Args >(args)…);
+    }
 
-完美转发适用于这样的场景：需要将一组参数原封不动的传递给另一个函数。
-
-“原封不动”不仅仅是参数的值不变，在 C++ 中，除了参数值之外，还有一下两组属性：
-
-左值／右值和 const/non-const。完美转发就是在参数传递过程中，所有这些属性和参数值都不能改变。在泛型函数中这样的需求非常普遍。
+这个工厂函数的参数是右值引用类型，内部使用std::forward按照参数的实际类型进行转发，如果参数的实际类型是右值，那么创建的时候会自动匹配移动构造，如果是左值则会匹配拷贝构造。
 
 ### 1.2 泛化的常量表达式 constexpr ###
 
