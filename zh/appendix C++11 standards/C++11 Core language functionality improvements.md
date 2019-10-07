@@ -159,12 +159,12 @@ __显式默认设置的函数和已删除函数的好处__
 *	虽然这是广为接受的惯例，但是除非你了解用于自动生成特殊成员函数的所有规则，否则意图不明确。
 在 C++11 中，不可复制的习语可通过更直接的方法实现。
 
-    struct LeafOfTree
-    {
-      LeafOfTree() =default;
-      LeafOfTree( const LeafOfTree& )=delete;
-       LeafOfTree & operator=( const LeafOfTree& )=delete;
-    };
+     struct LeafOfTree
+     {
+       LeafOfTree() =default;
+       LeafOfTree( const LeafOfTree& )=delete;
+        LeafOfTree & operator=( const LeafOfTree& )=delete;
+     };
     
 请注意如何解决与 C++11 之前的惯例有关的问题：
 * 仍可通过声明复制构造函数来阻止生成默认构造函数，但可通过将其显式设置为默认值进行恢复。
