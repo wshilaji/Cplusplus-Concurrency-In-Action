@@ -68,7 +68,7 @@ Boostcon:
 13. 模板别名
 14. 无限制 union。
 15. [std::function<>](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C++11%20standards/C++11%20Core%20language%20usability%20enhancements.md#315-stdfuction)
-## 4. 核心语言的功能提升 ##
+## 4. [核心语言的功能提升](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C++11%20standards/C++11%20Core%20language%20functionality%20improvements.md) ##
 
 本小节主要包括：
 
