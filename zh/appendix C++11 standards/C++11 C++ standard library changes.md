@@ -26,7 +26,6 @@
         ptr->DoSomething(); // Use the object in some way
         delete ptr; // Destroy the object. Done with it.
         // Wait, what if DoSomething() raises an exception...?
-
 通过比较，智能指针定义了有关销毁对象的时间的策略。您仍然必须创建对象，但是不必担心销毁它。
 
         SomeSmartPtr<MyObject> ptr(new MyObject());
@@ -85,8 +84,7 @@ std::unique_ptr如果要将对象的生存期绑定到特定代码块，或者�
         p2->other = p1; // p2 references p1
 
         // Oops, the reference count of of p1 and p2 never goes to zero!
-        // The objects are never destroyed!
-        
+        // The objects are never destroyed!        
 #### __unique_ptr__ ####
 
         //Specialization for arrays:
@@ -126,7 +124,7 @@ unique_ptr开销很小，是首选的轻质智能指针。其类型为 __templat
     unique_ptr<T> myOtherPtr = myPtr; // Error: Can't copy unique_ptr
     
 ![unique_ptr](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/pic/5.4.1.png)
-然而，unique_ptr可移动使用新的移动语义：
+然而，要更改唯一ptr指向的对象，请使用move语义：
 
     //unique_ptr(unique_ptr&& u) noexcept;移动构造函数	
     unique_ptr<T> myPtr(new T);                  // Okay
@@ -146,22 +144,20 @@ __unique_ptr在删除器__ 方面可能会有些麻烦。shared_ptr只要它是�
 >
         
 #### unique_ptr使用场景 ####
-      
+
 ##### 1、为动态申请的资源提供异常安全保证 #####
 
         void Func(){
             int *p = new int(5);
             // ...（可能会抛出异常）
             delete p;
-        }
-        
+        }        
 这是我们传统的写法：当我们动态申请内存后，有可能我们接下来的代码由于抛出异常或者提前退出（if语句）而没有执行delete操作。解决的方法是使用unique_ptr来管理动态内存，只要unique_ptr指针创建成功，其析构函数都会被调用。确保动态资源被释放。
 
         void Func(){
             unique_ptr<int> p(new int(5));
             // ...（可能会抛出异常）
-        }
-        
+        }        
 ##### 2、返回函数内动态申请资源的所有权 #####   [同上]();
 ##### 3、在容器中保存指针 #####
 
@@ -181,10 +177,8 @@ __unique_ptr在删除器__ 方面可能会有些麻烦。shared_ptr只要它是�
         shared_ptr::use_count
         
           std::shared_ptr<int> sp1(new int(5));
-            std::cout << "sp0.get() == 0 == " << std::boolalpha<< (sp0.get() == 0) << std::endl;
-            std::cout << "*sp1.get() == " << *sp1.get() << std::endl;
-
-
+          std::cout << "sp0.get() == 0 == " << std::boolalpha<< (sp0.get() == 0) << std::endl;//sp0.get() == 0 == true
+          std::cout << "*sp1.get() == " << *sp1.get() << std::endl;//*sp1.get() == 5
 __shared_ptr__ 是共享所有权的智能指针。都是copyable和movable。资源可由多个 shared_ptr 对象拥有；当拥有特定资源的最后一个 shared_ptr 对象被销毁后，资源将释放。shared_ptr 对象有效保留一个指向其拥有的资源的指针或保留一个 null 指针。在重新分配或重置资源后，shared_ptr 将停止拥有该资源。拥有资源的最后一个智能指针一旦超出范围，资源将被释放。在内部，shared_ptr还有很多事情要做：有一个引用计数，该计数被原子地更新以允许在并发代码中使用。另外，还有大量的分配工作，一个分配用于内部簿记“reference control block”，另一个分配给实际的成员对象（通常）。这还有另一个很大的区别：共享指针类型始终为 __template <typename T> class shared_ptr__ ;，尽管您可以使用自定义删除器和自定义分配器对其进行初始化，但是共享指针类型始终如此。 
 
         #include <memory>
@@ -220,7 +214,14 @@ __shared_ptr__ 是共享所有权的智能指针。都是copyable和movable。�
   
 __weak_ptr__
  帮助处理使用共享指针时出现的循环引用如果您有两个共享指针指向的两个对象，并且有一个内部共享指针指向彼此的共享指针，则将有一个循环引用，而该对象不会当共享指针超出范围时被删除。要解决此问题，请将内部成员从shared_ptr更改为weak_ptr。注意：要使用弱指针指向的元素，请使用lock（），这将返回一个weak_ptr。
-
+ 
+        T a ; 
+        shared_ptr<T> shr = make_shared<T>() ; 
+        weak_ptr<T> wk = shr ; // initialize a weak_ptr from a shared_ptr 
+        wk.lock()->memFn() ; // use lock to get a shared_ptr 
+        //   ^^^ Can lead to exception if the shared ptr has gone out of scope
+        if(!wk.expired()) wk.lock()->memFn() ;
+        // Check if shared ptr has gone out of scope before access
 ### 5.7 可扩展的随机数功能 ###
 
 ### 5.8 包装引用 ###
