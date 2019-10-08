@@ -100,3 +100,12 @@ Boostcon:
 9. 多态函数对象包装器
 10. 用于元编程的类型属性
 11. 用于计算函数对象返回类型的统一方法
+
+## 6.[C++ 奇淫巧技](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/c%2B%2B11%20Fantastic%20Skills) ##
+
+本小节主要包括：
+
+1. SFINAE技术
+2. 私有成员函数一定不能被外部调用吗？
+3. 模板元编程
+4. 
