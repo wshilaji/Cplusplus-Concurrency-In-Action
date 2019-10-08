@@ -105,6 +105,25 @@ __unique_ptr在删除器__ 方面可能会有些麻烦。shared_ptr只要它是�
 
 __shared_ptr__ 是共享所有权的智能指针。都是copyable和movable。多个智能指针实例可以拥有相同的资源。拥有资源的最后一个智能指针一旦超出范围，资源将被释放。在内部，shared_ptr还有很多事情要做：有一个引用计数，该计数被原子地更新以允许在并发代码中使用。另外，还有大量的分配工作，一个分配用于内部簿记“reference control block”，另一个分配给实际的成员对象（通常）。这还有另一个很大的区别：共享指针类型始终为 __template <typename T> class shared_ptr__ ;，尽管您可以使用自定义删除器和自定义分配器对其进行初始化，但是共享指针类型始终如此。
 
+        #include <memory>
+        T a ; 
+             //shared_ptr<T> shptr(new T) ; not recommended but works 
+             shared_ptr<T> shptr = make_shared<T>(); // faster + exception safe
+             
+             std::cout << shptr.use_count() ; // 1 //  gives the number of "things " pointing to it. 
+             T * temp = shptr.get(); // gives a pointer to object
+             // shared_pointer used like a regular pointer to call member functions
+              shptr->memFn();
+             (*shptr).memFn(); 
+            //
+             shptr.reset() ; // frees the object pointed to be the ptr 
+             shptr = nullptr ; // frees the object 
+             shptr = make_shared<T>() ; // frees the original object and points to new object
+使用引用计数实现，以跟踪指针指向的对象有多少个“事物”。当此计数变为0时，将自动删除对象，即，当所有指向该对象的share_ptr超出范围时，删除对象。这消除了必须删除使用new分配的对象的麻烦。             
+             
+__weak_ptr__
+ 帮助处理使用共享指针时出现的循环引用如果您有两个共享指针指向的两个对象，并且有一个内部共享指针指向彼此的共享指针，则将有一个循环引用，而该对象不会当共享指针超出范围时被删除。要解决此问题，请将内部成员从shared_ptr更改为weak_ptr。注意：要使用弱指针指向的元素，请使用lock（），这将返回一个weak_ptr。
+
 ### 5.7 可扩展的随机数功能 ###
 
 ### 5.8 包装引用 ###
