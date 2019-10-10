@@ -255,4 +255,85 @@ N代表分子，D代表分母，所以ratio表示一个分数值。注意，我�
 
         template <class ToDuration, class Rep, class Period>
         constexpr ToDuration duration_cast (const duration<Rep,Period>& dtn);
+典型的用法是表示一段时间：
 
+           typedef std::chrono::duration<int> seconds_type;
+            typedef std::chrono::duration<int,std::milli> milliseconds_type;
+           typedef std::chrono::duration<int,std::ratio<60*60>> hours_type;
+          // seconds_type和milliseconds_type的duration表示相同
+           hours_type h_oneday (24);                  // 24h
+           seconds_type s_oneday (60*60*24);          // 86400s
+           milliseconds_type ms_oneday (s_oneday);    // 86400000ms
+               seconds_type s_onehour (60*60);            // 3600s
+         //hours_type h_onehour (s_onehour);          // NOT VALID (type truncates), use:
+           hours_type h_onehour(std::chrono::duration_cast<hours_type>(s_onehour));
+           milliseconds_type ms_onehour (s_onehour);  // 3600000ms (ok, no type truncation)
+           std::cout << ms_onehour.count() << "ms in 1h" << std::endl;
+uration还有一个成员函数count()返回Rep类型的Period数量，看代码：
+
+         using namespace std::chrono;
+         // std::chrono::milliseconds is an instatiation of std::chrono::duration:
+         milliseconds foo (1000); // 1 second
+         foo*=60;
+         std::cout << "duration (in seconds): ";
+          std::cout << foo.count() * milliseconds::period::num / milliseconds::period::den << " seconds.\n"; //6000*(1/1000)
+        // num是分子，den是分母 这里是1/1000 ratio当中的
+#### __2.Time points__ ####        
+
+std::chrono::time_point 表示一个具体时间，如上个世纪80年代、你的生日、今天下午、火车出发时间等，只要它能用计算机时钟表示。鉴于我们使用时间的情景不同，这个time point具体到什么程度，由选用的单位决定。一个time point必须有一个clock计时。参见clock的说明。
+
+        template <class Clock, class Duration = typename Clock::duration>  class time_point;
+第一个模板参数Clock用来指定所要使用的时钟（标准库中有三种时钟，system_clock，steady_clock和high_resolution_clock。见 3 时钟详解），第二个模板函数参数用来表示时间的计量单位(特化的std::chrono::duration<>) 时间点都有一个时间戳，即时间原点。chrono库中采用的是Unix的时间戳1970年1月1日 00:00。所以time_point也就是距离时间戳(epoch)的时间长度（duration）。
+构造函数：
+
+        time_point();           //默认构造函数，时间戳作为其值
+        template <class Duration2>
+        time_point (const time_point<clock,Duration2>& tp);  //拷贝构造函数
+        explicit time_point (const duration& dtn);           //使用duration构造，就是距离时间戳的时间长度
+（2）时间点有个重要的函数：duration time_since_epoch()  (用于获取当前时间点距离时间戳的时间长度)
+
+        chrono::time_point<chrono::system_clock, chrono::seconds> tp(chrono::seconds(2));
+        cout << "to epoch : " << tp.time_since_epoch().count() << "s" << endl;
+        //转化为ctime，打印输出时间点
+                time_t tt = chrono::system_clock::to_time_t(tp);
+        char a[50];    
+        ctime_s(a, sizeof(a), &tt);
+        cout << a;  //  或者直接 ctime(&tt); 不用定义a
+
+~~to epoch : 2s Thu Jan  1 08:00:02 1970   ~~
+#### 3.Clocks ####
+
+std::chrono::system_clock:  依据系统的当前时间 (不稳定)    1/10000000s
+std::chrono::steady_clock:  以统一的速率运行(不能被调整)   1/100000000s
+  std::chrono::high_resolution_clock: 最后一个时钟，std::chrono::high_resolution_clock 顾名思义，这是系统可用的最高精度的时钟。实际上high_resolution_clock只不过是system_clock或者steady_clock的typedef。
+  
+操作有：
+now() 当前时间time_point .
+to_time_t() time_point转换成time_t秒 .
+from_time_t() 从time_t转换成time_point
+由于各种time_point表示方式不同，chrono也提供了相应的转换函数 time_point_cast。
+
+        template <class ToDuration, class Clock, class Duration>
+          time_point<Clock,ToDuration> time_point_cast (const time_point<Clock,Duration>& tp);
+典型的应用是计算时间日期：
+
+            using std::chrono::system_clock;          
+           std::chrono::duration<int,std::ratio<60*60*24> > one_day (1);          
+           system_clock::time_point today = system_clock::now();
+           system_clock::time_point tomorrow = today + one_day;          
+           std::time_t tt;          
+           tt = system_clock::to_time_t ( today );
+           std::cout << "today is: " << ctime(&tt);          
+           tt = system_clock::to_time_t ( tomorrow );
+           std::cout << "tomorrow will be: " << ctime(&tt);
+std::chrono::steady_clock 为了表示 的时间间隔，后一次调用now()得到的时间总是比前一次的值大（这句话的意思其实是，如果中途修改了系统时间，也不影响now()的结果），每次tick都保证过了稳定的时间间隔。
+操作有：
+now() 获取当前时钟
+典型的应用是给算法计时：
+
+           steady_clock::time_point t1 = steady_clock::now();  
+           std::cout << "printing out 1000 stars...\n";
+           for (int i=0; i<1000; ++i) std::cout << "*";   
+           steady_clock::time_point t2 = steady_clock::now();  
+           duration<double> time_span = duration_cast<duration<double>>(t2 - t1);  
+           std::cout << "It took me " << time_span.count() << " seconds.";
