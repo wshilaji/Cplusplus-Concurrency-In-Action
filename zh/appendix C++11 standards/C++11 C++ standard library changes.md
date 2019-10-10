@@ -233,3 +233,26 @@ __weak_ptr__
 ### 5.11 用于计算函数对象返回类型的统一方法 ###
 
 ### 5.12 std::chrono库详解 ###
+chrono是一个time library, 源于boost，现在已经是C++标准。要使用chrono库，需要#include<chrono>, #include <ratio>，其所有实现均在std::chrono namespace下。注意标准库里面的每个命名空间代表了一个独立的概念。所以下文中的概念均以命名空间的名字表示！ chrono是一个模版库，使用简单，功能强大，只需要理解三个概念：duration、time_point、clock
+
+#### __1.Durations__ ####
+std::chrono::duration 表示一段时间，比如两个小时，12.88秒，半个时辰，一炷香的时间等等，只要能换算成秒即可。
+
+        template <class Rep, class Period = ratio<1> > class duration;
+其中Rep表示一种数值类型，用来表示Period的数量，比如int float double, Period是ratio类型，用来表示【用秒表示的时间单位】比如second milisecond
+常用的duration<Rep,Period>已经定义好了，在std::chrono::duration下：
+
+        ratio<3600, 1>                hours
+        ratio<60, 1>                    minutes
+        ratio<1, 1>                      seconds
+        ratio<1, 1000>              milliseconds
+         ratio<1, 1000000>         microseconds
+        ratio<1, 1000000000>    nanosecons
+这里需要说明一下ratio这个类模版的原型：
+
+        template <intmax_t N, intmax_t D = 1> class ratio;
+N代表分子，D代表分母，所以ratio表示一个分数值。注意，我们自己可以定义Period，比如ratio<1, -2>表示单位时间是-0.5秒。由于各种duration表示不同，chrono库提供了duration_cast类型转换函数。
+
+        template <class ToDuration, class Rep, class Period>
+        constexpr ToDuration duration_cast (const duration<Rep,Period>& dtn);
+
