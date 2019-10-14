@@ -63,13 +63,13 @@
         return 0;
     }
     
-为了清楚的观察临时值，在编译时设置编译选项-fno-elide-constructors用来关闭返回值优化效果。输出结果：
-construct : 1
-copy construct: 1
-destruct: 1
-copy construct: 2
-destruct: 2
-destruct: 3
+为了清楚的观察临时值，在编译时设置编译选项-fno-elide-constructors用来关闭返回值优化效果。输出结果：<br>  
+construct : 1<br>  
+copy construct: 1<br>  
+destruct: 1<br>  
+copy construct: 2<br>  
+destruct: 2<br>  
+destruct: 3<br>  
 从上面的例子中可以看到，在没有返回值优化的情况下，拷贝构造函数调用了两次，一次是GetA()函数内部创建的对象返回出来构造一个临时对象产生的，另一次是在main函数中构造a对象产生的。第二次的destruct是因为临时对象在构造a对象之后就销毁了。如果开启返回值优化的话，输出结果将是：
 construct: 1
 destruct: 1
@@ -80,11 +80,11 @@ destruct: 1
         return 0;
     }
     
-输出结果：
-construct: 1
-copy construct: 1
-destruct: 1
-destruct: 2
+输出结果：<br> 
+construct: 1 <br> 
+copy construct: 1  <br> 
+destruct: 1  <br> 
+destruct: 2  <br> 
 通过右值引用，比之前少了一次拷贝构造和一次析构，原因在于右值引用绑定了右值，让临时右值的生命周期延长了。我们可以利用这个特点做一些性能优化，即避免临时对象的拷贝构造和析构，事实上，在c++98/03中，通过常量左值引用也经常用来做性能优化。上面的代码改成：
     
     const A& a = GetA();
@@ -146,13 +146,13 @@ destruct: 2
         return 0;
     }
     
-输出：
-Construct  看不见的临时变量
-copy construct 看不见的临时变量 copy 给 返回传递 的临时变量 
-destruct 看不见的临时变量析构
-copy construct返回传递 的临时变量 拷贝 给 a 
-destruct返回传递 的临时变量 析构
-destruct a析构
+输出：<br> 
+Construct  看不见的临时变量  <br> 
+copy construct 看不见的临时变量 copy 给 返回传递 的临时变量 <br> 
+destruct 看不见的临时变量析构  <br> 
+copy construct返回传递 的临时变量 拷贝 给 a   <br> 
+destruct返回传递 的临时变量 析构  <br>   
+destruct a析构  <br> 
    这个例子很简单，一个带有堆内存的类，必须提供一个深拷贝拷贝构造函数，因为默认的拷贝构造函数是浅拷贝，会发生“指针悬挂”的问题。如果不提供深拷贝的拷贝构造函数，上面的测试代码将会发生错误（编译选项-fno-elide-constructors），第一次析构m_ptr是 看不见 临时变量 构造函数A():m_ptr(new int(0))的析构   拷贝构造函数的 内部的m_ptr将会被删除两次，一次是临时右值析构的时候删除一次，第二次外面构造的a对象释放时删除一次，而这两个对象的m_ptr是同一个指针，这就是所谓的指针悬挂问题。提供深拷贝的拷贝构造函数虽然可以保证正确，但是在有些时候会造成额外的性能损耗，因为有时候这种深拷贝是不必要的。比如下面的代码：
       ![](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/images/stdc%2B%2B11/1.1.png)
       
@@ -180,12 +180,12 @@ destruct a析构
     } 
 
 输出：
-construct
-move construct
-destruct
-move construct
-destruct
-destruct
+construct   <br> 
+move construct  <br> 
+destruct  <br> 
+move construct  <br> 
+destruct  <br> 
+destruct   <br> 
 代码清单1-3和1-2相比只多了一个构造函数，输出结果表明，并没有调用拷贝构造函数，因为GetA()是右值，只调用了move construct函数，让我们来看看这个move construct函数：
 
     A(A&& a) :m_ptr(a.m_ptr)
@@ -243,9 +243,9 @@ destruct
         forwardValue(i); //传入左值 
         forwardValue(0);//传入右值 
     }
-输出：
-lvaue 
-rvalue
+输出：  <br> 
+lvaue   <br> 
+rvalue   <br> 
 右值引用T&&是一个universal references，可以接受左值或者右值，正是这个特性让他适合作为一个参数的路由，然后再通过std::forward按照参数的实际类型去匹配对应的重载函数，最终实现完美转发。我们可以结合完美转发和移动语义来实现一个泛型的工厂函数，这个工厂函数可以创建所有类型的对象。具体实现如下：
 
     template<typename…  Args>
