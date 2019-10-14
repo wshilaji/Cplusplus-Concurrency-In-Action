@@ -64,12 +64,12 @@
     }
     
 为了清楚的观察临时值，在编译时设置编译选项-fno-elide-constructors用来关闭返回值优化效果。输出结果：<br>  
-construct : 1<br>  
-copy construct: 1<br>  
-destruct: 1<br>  
-copy construct: 2<br>  
-destruct: 2<br>  
-destruct: 3<br>  
+construct : 1 <br>  
+copy construct: 1 <br>  
+destruct: 1 <br>  
+copy construct: 2 <br>  
+destruct: 2 <br>  
+destruct: 3  <br>  
 从上面的例子中可以看到，在没有返回值优化的情况下，拷贝构造函数调用了两次，一次是GetA()函数内部创建的对象返回出来构造一个临时对象产生的，另一次是在main函数中构造a对象产生的。第二次的destruct是因为临时对象在构造a对象之后就销毁了。如果开启返回值优化的话，输出结果将是：
 construct: 1
 destruct: 1
