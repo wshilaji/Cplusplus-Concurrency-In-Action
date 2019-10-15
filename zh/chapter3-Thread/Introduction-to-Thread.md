@@ -450,8 +450,31 @@ If you don’t need to wait for a thread to finish, you can avoid this exception
 	    scoped_thread t(std::thread(func(some_local_state)));
 	    do_something_in_current_thread();
 	}
+#### Spawn some threads and wait for them to finish ####
 
+	void do_work(unsigned id);
+	void f()
+	{
+	    std::vector<std::thread> threads;
+	    for(unsigned i=0;i<20;++i)
+	    {
+		threads.push_back(std::thread(do_work,i));
+	    }
+	    std::for_each(threads.begin(),threads.end(),std::mem_fn(&std::thread::join));
+	    //函数模板men_fn()相当于STL中内置的仿函数,将一个成员函数作用在一个容器上
+	}
+#### 其他函数 ####
 
+- `hardware_concurrency` [static]: 检测硬件并发特性，返回当前平台的线程实现所支持的线程并发数目，但返回值仅仅只作为系统提示(hint)。
+
+        #include <iostream>
+        #include <thread>
+         
+        int main() {
+            unsigned int n = std::thread::hardware_concurrency();
+            std::cout << n << " concurrent threads are supported.\n";
+        }
+	
 - `swap`: Swap 线程，交换两个线程对象所代表的底层句柄(underlying handles)。    
          
         void foo(){std::this_thread::sleep_for(std::chrono::seconds(1));}         
@@ -522,15 +545,7 @@ If you don’t need to wait for a thread to finish, you can avoid this exception
     Thread 2 is executing at priority 0
     Thread 1 is executing at priority 20
 
-- `hardware_concurrency` [static]: 检测硬件并发特性，返回当前平台的线程实现所支持的线程并发数目，但返回值仅仅只作为系统提示(hint)。
 
-        #include <iostream>
-        #include <thread>
-         
-        int main() {
-            unsigned int n = std::thread::hardware_concurrency();
-            std::cout << n << " concurrent threads are supported.\n";
-        }
 
 ## `std::this_thread` 命名空间中相关辅助函数介绍 ##
 
