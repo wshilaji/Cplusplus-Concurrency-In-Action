@@ -189,6 +189,16 @@ std::thread 各种构造函数例子如下（[参考](http://en.cppreference.com
 	fn启动了一个新的线程，在装个新的线程中使用了局部变量a的指针，
 	并且将该线程的运行方式设置为detach。这样，在下面这个lamb表达式 [=] {int a = 100;thread t(fn, &a);t.detach();}();执行结束后，变量a被销毁，但是在后台运行的线程仍然在使用已销毁变量a的指针,a是局部变量
     
+   <br> 100    <-------------------在这只有第一个输出的100 剩下的都是随机地址值 </br>   
+<br>10418084 </br>
+<br>10418084  </br>
+<br>10418084  </br>
+<br>10418084  </br>
+<br>10418084  </br>
+<br>10418084  </br>
+<br>10418084  </br>
+<br>10418084 </br>
+<br>10418084 </br>
 #### `std::thread` 赋值操作 ####
 
 <table style="width: 475px; height: 87px;">
@@ -240,7 +250,50 @@ thread&amp; operator=(const thread&amp;) = delete;
 
         return EXIT_SUCCESS;
     }
+#### `std::thread` 传递参数 ####
 
+	void func(int *a, int n) {}
+	void oops()
+	{
+		int buffer[10];
+		std::thread t(func, buffer, 10);
+		//向线程调用的函数传递参数也是很简单的，只需要在构造thread的实例时，依次传入即可
+		t.join();
+	}
+	//需要注意的是，  默认  的会将传递的参数以拷贝的方式复制到线程空间，即使参数的类型是引用
+	void func1(int a, const std::string& str){}
+	void oop(){
+		std::thread t(func1, 3, "hello");
+	}	
+	<br> func的第二个参数是string &，而传入的是一个字符串字面量。该字面量以const char*类型传入线程空间后，在线程的空间内转换为string。 </br>
+	如果在线程中使用引用来更新对象时，就需要注意了。默认的是将对象拷贝到线程空间，其引用的是拷贝的线程空间的对象，而不是初始希望改变的对象。如下
+
+	class _tagNode{public: int a;int b;};
+	void func2(_tagNode &node)
+	{
+		node.a = 10;
+		node.b = 20;
+	}
+	void f()
+	{
+		_tagNode node;
+		//thread t(func2, std::ref(node));
+		thread t(func2, node);
+		t.join();
+		cout << node.a << endl;
+		cout << node.b << endl;
+	}
+	//在线程内，将对象的字段a和b设置为新的值，但是在线程调用结束后，这两个字段的值并不会改变。
+	//这样由于引用的实际上是局部变量node的一个拷贝，而不是node本身。在将对象传入线程的时候，调用std::ref，将node的引用传入线程，
+	//而不是一个拷贝。改成这句thread t(func, std::ref(node));即可
+	//也可以使用类的成员函数作为线程函数，示例如下
+	class _Node {
+	public:
+		void do_some_work(int a) {};
+	};
+	_Node node;
+	thread t(&_Node::do_some_work, &node, 20);//上面创建的线程会调用node.do_some_work(20)，第三个参数为成员函数第一个参数
+	
 ### 其他成员函数 ###
 
 > 本小节例子来自 [http://en.cppreference.com ](http://en.cppreference.com/w/cpp/thread/thread)
