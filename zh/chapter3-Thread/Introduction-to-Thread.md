@@ -159,7 +159,36 @@ std::thread 各种构造函数例子如下（[参考](http://en.cppreference.com
         t4.join();
         std::cout << "Final value of n is " << n << '\n';
     }
+    
+#### `std::thread` 启动一个线程  ####
 
+    class Task{
+    public:
+        void operator()(int i){  //当函数调用
+            cout << i << endl;
+        }
+    };
+    for (uint8_t i = 0; i < 4; i++)
+        {
+            Task task;
+            thread t(task, i);
+            t.detach();
+        }
+把函数对象传入std::thread的构造函数时，要注意一个C++的语法解析错误（C++'s most vexing parse）。向std::thread的构造函数中传入的是一个临时变量，而不是命名变量就会出现语法解析错误。如下代码：std::thread t(Task());这里相当于声明了一个函数t，其返回类型为thread，而不是启动了一个新的线程。可以使用新的初始化语法避免这种情况std::thread t((Task()));std::thread t{ Task() };
+
+    auto fn = [](int *a) {
+    for (int i = 0; i < 10; i++)
+        cout << *a << endl;
+	};
+	[=] {
+		int a = 100;
+		thread t(fn, &a);
+		t.detach();//换成 t.join（）就没下面这么多事了，但是我们要分离它
+	}();
+	/*
+	fn启动了一个新的线程，在装个新的线程中使用了局部变量a的指针，
+	并且将该线程的运行方式设置为detach。这样，在下面这个lamb表达式 [=] {int a = 100;thread t(fn, &a);t.detach();}();执行结束后，变量a被销毁，但是在后台运行的线程仍然在使用已销毁变量a的指针,a是局部变量
+    
 #### `std::thread` 赋值操作 ####
 
 <table style="width: 475px; height: 87px;">
