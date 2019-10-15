@@ -129,16 +129,14 @@ std::thread 各种构造函数例子如下（[参考](http://en.cppreference.com
     #include <thread>
     #include <chrono>
     #include <functional>
-    #include <atomic>
- 
+    #include <atomic> 
     void f1(int n)
     {
         for (int i = 0; i < 5; ++i) {
             std::cout << "Thread " << n << " executing\n";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-    }
- 
+    } 
     void f2(int& n)
     {
         for (int i = 0; i < 5; ++i) {
@@ -146,8 +144,7 @@ std::thread 各种构造函数例子如下（[参考](http://en.cppreference.com
             ++n;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-    }
- 
+    } 
     int main()
     {
         int n = 0;
@@ -155,8 +152,7 @@ std::thread 各种构造函数例子如下（[参考](http://en.cppreference.com
         std::thread t2(f1, n + 1); // pass by value
         std::thread t3(f2, std::ref(n)); // pass by reference
         std::thread t4(std::move(t3)); // t4 is now running f2(). t3 is no longer a thread
-        t2.join();
-        t4.join();
+        t2.join(); t4.join();
         std::cout << "Final value of n is " << n << '\n';
     }
     
@@ -265,6 +261,7 @@ thread&amp; operator=(const thread&amp;) = delete;
 	void func1(int a, const std::string& str){}
 	void oop(){
 		std::thread t(func1, 3, "hello");
+		//std::thread t(f,3,std::string(buffer));使用std::string避免
 	}	
 	<br> func的第二个参数是string &，而传入的是一个字符串字面量。该字面量以const char*类型传入线程空间后，在线程的空间内转换为string。 </br>
 	如果在线程中使用引用来更新对象时，就需要注意了。默认的是将对象拷贝到线程空间，其引用的是拷贝的线程空间的对象，而不是初始希望改变的对象。如下
@@ -303,80 +300,56 @@ thread&amp; operator=(const thread&amp;) = delete;
 
         #include <iostream>
         #include <thread>
-        #include <chrono>
-         
+        #include <chrono>         
         void foo()
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-         
+        }         
         int main()
         {
             std::thread t1(foo);
-            std::thread::id t1_id = t1.get_id();
-         
-            std::thread t2(foo);
-            std::thread::id t2_id = t2.get_id();
-         
-            std::cout << "t1's id: " << t1_id << '\n';
-            std::cout << "t2's id: " << t2_id << '\n';
-         
+            std::thread::id t1_id = t1.get_id();            
+            std::cout << "t1's id: " << t1_id << '\n';  
             t1.join();
-            t2.join();
         }
 
 - `joinable`: 检查线程是否可被 join。检查当前的线程对象是否表示了一个活动的执行线程，由默认构造函数创建的线程是不能被 join 的。另外，如果某个线程 已经执行完任务，但是没有被 join 的话，该线程依然会被认为是一个活动的执行线程，因此也是可以被 join 的。
 
-        #include <iostream>
-        #include <thread>
-        #include <chrono>
-         
+       
         void foo()
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-         
+        }         
         int main()
         {
             std::thread t;
-            std::cout << "before starting, joinable: " << t.joinable() << '\n';
-         
+            std::cout << "before starting, joinable: " << t.joinable() << '\n';         
             t = std::thread(foo);
-            std::cout << "after starting, joinable: " << t.joinable() << '\n';
-         
+            std::cout << "after starting, joinable: " << t.joinable() << '\n';         
             t.join();
         }
 
 - `join`: Join 线程，调用该函数会阻塞当前线程，直到由 `*this` 所标示的线程执行完毕 join 才返回。
-
-        #include <iostream>
-        #include <thread>
-        #include <chrono>
-         
+       
         void foo()
         {
             // simulate expensive operation
             std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-         
+        }         
         void bar()
         {
             // simulate expensive operation
             std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-         
+        }         
         int main()
         {
             std::cout << "starting first helper...\n";
-            std::thread helper1(foo);
-         
+            std::thread helper1(foo);         
             std::cout << "starting second helper...\n";
-            std::thread helper2(bar);
-         
+            std::thread helper2(bar);         
             std::cout << "waiting for helpers to finish..." << std::endl;
             helper1.join();
-            helper2.join();
-         
+            helper2.join();         
             std::cout << "done!\n";
         }
 
@@ -389,72 +362,111 @@ thread&amp; operator=(const thread&amp;) = delete;
 2. joinable() == false
 3. get_id() == std::thread::id()
 
-另外，如果出错或者 `joinable() == false`，则会抛出 `std::system_error`.
+另外，如果出错或者 `joinable() == false`，则会抛出 `std::system_error`.  
 
-        #include <iostream>
-        #include <chrono>
-        #include <thread>
-         
-        void independentThread() 
-        {
-            std::cout << "Starting concurrent thread.\n";
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-            std::cout << "Exiting concurrent thread.\n";
-        }
-         
-        void threadCaller() 
-        {
-            std::cout << "Starting thread caller.\n";
-            std::thread t(independentThread);
-            t.detach();
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::cout << "Exiting thread caller.\n";
-        }
-         
-        int main() 
-        {
-            threadCaller();
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-        }
+### 异常情况下等待线程完成 ###
 
-- `swap`: Swap 线程，交换两个线程对象所代表的底层句柄(underlying handles)。
+当决定以detach方式让线程在后台运行时，可以在创建 thread的实例后 立即调用detach，这样线程就会后thread的实例分离，即使出现了异常 thread的实例被 销毁 ，仍然能保证线程在后台运行。但线程以join方式运行时，需要在 主线程 的合适位置 调用join方法，如果调用 join 前出现了异常，thread被销毁，线程就会被 异常所终结。为了避免异常将线程终结，或者由于某些原因，例如线程访问了局部变量，就要保证线程一定要在 函数退出 前完成，就要保证要在 函数退出前调用join
 
-        #include <iostream>
-        #include <thread>
-        #include <chrono>
+	  void func() {
+		thread t([] {
+			cout << "hello C++ 11" << endl;
+		});
+		try
+		{
+			//do_something_else();
+		}
+		catch (...)
+		{
+			t.join();
+			throw;
+		}
+		t.join();
+	}    
+上面代码能够保证在正常或者异常的情况下，都会调用join方法，这样线程一定会在函数func退出前完成。但是使用这种方法，不但代码冗长，而且会出现一些作用域的问题，并不是一个很好的解决方法。一种比较好的方法是资源获取即初始化（RAII,Resource Acquisition Is Initialization)，该方法提供一个类，在析构函数中调用join。
+
+	class thread_guard
+	{
+		thread &t;
+	public:
+		explicit thread_guard(thread& _t) :t(_t) {}
+		~thread_guard()
+		{
+			if (t.joinable())
+				t.join();
+		}
+		thread_guard(const thread_guard&) = delete;
+		thread_guard& operator=(const thread_guard&) = delete;
+	};//无论是何种情况，当函数退出时，局部变量g调用其析构函数销毁，从而能够保证join一定被调用	
+	void func() {
+		thread t([] {
+			cout << "Hello thread" << endl;
+		});
+		thread_guard g(t);	
+	}
+	
+If you don’t need to wait for a thread to finish, you can avoid this exception-safety issue by detaching it. This breaks the association of the thread with the std::thread object and ensures that std::terminate() won’t be called when the std::thread object is destroyed, even though the thread is still running in the background.
+
+### Returning a std:: fthreadrom a function ###
+	
+	std::thread g()
+	{
+		void some_other_function(int);
+		std::thread t(some_other_function,42);
+		return t;//返回右值
+	}
+	void f(std::thread t);
+	void main()
+	{
+		void some_function(); 
+		f(std::thread(some_function));//临时值
+		f(g());
+		std::thread t(some_function);
+		f(std::move(t));//仔细看清 是哪个函数
+	}
+### scoped_thread ###
+
+	class scoped_thread
+	{
+	    std::thread t;
+	public:
+	    explicit scoped_thread(std::thread t_):
+	       t(std::move(t_))
+	   {
+	       if(!t.joinable())
+	       throw std::logic_error(“No thread”);
+	   }
+	   ~scoped_thread()
+	   {
+	       t.join();
+	   }
+	   scoped_thread(scoped_thread const&)=delete;
+	   scoped_thread& operator=(scoped_thread const&)=delete;
+	};
+	struct func;
+	void f()
+	{
+	    int some_local_state;
+	    scoped_thread t(std::thread(func(some_local_state)));
+	    do_something_in_current_thread();
+	}
+
+
+- `swap`: Swap 线程，交换两个线程对象所代表的底层句柄(underlying handles)。    
          
-        void foo()
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-         
-        void bar()
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-         
+        void foo(){std::this_thread::sleep_for(std::chrono::seconds(1));}         
+        void bar(){std::this_thread::sleep_for(std::chrono::seconds(1));}         
         int main()
         {
-            std::thread t1(foo);
-            std::thread t2(bar);
-         
-            std::cout << "thread 1 id: " << t1.get_id() << std::endl;
-            std::cout << "thread 2 id: " << t2.get_id() << std::endl;
-         
+            std::thread t1(foo);std::thread t2(bar);         
+            std::cout << "thread 1 id: " << t1.get_id() << std::endl;std::cout << "thread 2 id: " << t2.get_id() << std::endl;         
             std::swap(t1, t2);
-         
-            std::cout << "after std::swap(t1, t2):" << std::endl;
-            std::cout << "thread 1 id: " << t1.get_id() << std::endl;
-            std::cout << "thread 2 id: " << t2.get_id() << std::endl;
-         
-            t1.swap(t2);
-         
+	    std::cout << "after std::swap(t1, t2):" << std::endl;
+            std::cout << "thread 1 id: " << t1.get_id() << std::endl;std::cout << "thread 2 id: " << t2.get_id() << std::endl;         
+            t1.swap(t2);         
             std::cout << "after t1.swap(t2):" << std::endl;
-            std::cout << "thread 1 id: " << t1.get_id() << std::endl;
-            std::cout << "thread 2 id: " << t2.get_id() << std::endl;
-         
-            t1.join();
-            t2.join();
+            std::cout << "thread 1 id: " << t1.get_id() << std::endl;std::cout << "thread 2 id: " << t2.get_id() << std::endl;         
+            t1.join();t2.join();
         }
 
 执行结果如下：
