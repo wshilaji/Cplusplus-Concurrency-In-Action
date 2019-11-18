@@ -17,9 +17,9 @@
 
 ### 第一章 并发编程基础 ###
 ### 第二章 几种常见的多线程库介绍 ###
-### 第三章 线程详解  ###
-### 第四章 互斥量与锁 ###
-### 第五章 条件变量与线程同步 ###
+### [第三章 线程详解](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter3-Thread/README.md)  ###
+### [第四章 互斥量与锁](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter4-Mutex/README.md) ###
+### [第五章 条件变量与线程同步](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/chapter5-Condition-Variable/README.md) ###
 ### 第六章 异步任务详解 ###
 ### 第七章 原子类型详解  ###
 ### 第八章 C++11 内存模型 ###
