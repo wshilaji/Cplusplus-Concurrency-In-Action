@@ -256,6 +256,77 @@ Decltype 主要对值和表达式的类型推导，decltype 推导规则如下�
 2. 如果表达式 e 是一个函数，那么由 decltype 推导出来的类型就是这个函数返回值的类型。
 3. 如果不符合 1 和 2，如果 e 是左值，类型为 T，那么 decltype(e) 是 T&；如果是右值，则是 T。
 
+		//declare type
+		int getSize();
+		... main(void)
+		{
+			//1.基本用法
+			{
+				int tempA = 2;
+				/*1.dclTempA为int*/
+				decltype(tempA) dclTempA;
+				/*2.dclTempB为int，对于getSize根本没有定义，但是程序依旧正常，因为decltype只做分析，并不调用getSize，*/
+				decltype(getSize()) dclTempB;
+			}
+			//2.与const结合
+			{
+				double tempA = 3.0;
+				const double ctempA = 5.0;
+				const double ctempB = 6.0;
+				const double *const cptrTempA = &ctempA;
+
+				/*1.dclTempA推断为const double（保留顶层const，此处与auto不同）*/
+				decltype(ctempA) dclTempA = 4.1;
+				/*2.dclTempA为const double，不能对其赋值，编译不过*/
+				//dclTempA = 5;
+				/*3.dclTempB推断为const double * const*/
+				decltype(cptrTempA) dclTempB = &ctempA;
+				/*4.输出为4（32位计算机）和5*/
+				cout << sizeof(dclTempB) << "    " << *dclTempB << endl;
+				//5.保留顶层const，不能修改指针指向的对象，编译不过 const * const    
+				//dclTempB = &ctempB;
+				/*6.保留底层const，不能修改指针指向的对象的值，编译不过*/
+				//*dclTempB = 7.0;
+			}
+			/*3.与引用结合*/
+			{
+
+				int tempA = 0, &refTempA = tempA;
+
+				/*1.dclTempA为引用，绑定到tempA*/
+				decltype(refTempA) dclTempA = tempA;
+				/*2.dclTempB为引用，必须绑定到变量，编译不过*/
+				//decltype(refTempA) dclTempB = 0;
+				/*3.dclTempC为引用，必须初始化，编译不过*/
+				//decltype(refTempA) dclTempC;
+				/*4.双层括号表示引用，dclTempD为引用，绑定到tempA*/
+				decltype((tempA)) dclTempD = tempA;
+
+				const int ctempA = 1/*ctempA是常量*/, &crefTempA = ctempA;
+
+				/*5.dclTempE为常量引用，可以绑定到普通变量tempA*/
+				decltype(crefTempA) dclTempE = tempA;
+				/*6.dclTempF为常量引用，可以绑定到常量ctempA*/
+				decltype(crefTempA) dclTempF = ctempA;
+				/*7.dclTempG为常量引用，绑定到一个临时变量*/
+				decltype(crefTempA) dclTempG = 0;
+				/*8.dclTempH为常量引用，必须初始化，编译不过*/
+				//decltype(crefTempA) dclTempH;
+				/*9.双层括号表示引用,dclTempI为常量引用，可以绑定到普通变量tempA*/
+				decltype((ctempA))  dclTempI = ctempA;
+			}
+				/*4.与指针结合*/
+			{
+				int tempA = 2;
+				int *ptrTempA = &tempA;
+				/*1.常规使用dclTempA为一个int *的指针*/
+				decltype(ptrTempA) dclTempA;
+				/*2.需要特别注意，表达式内容为解引用操作，dclTempB为一个引用，引用必须初始化，故编译不过*/
+			//	decltype(*ptrTempA) dclTempB;
+			}
+			return 0;
+		}
+
 ### 3.4 基于范围的 for 循环 ###
 
 基于范围的for循环可以用非常简单的方式迭代集合中的每一项，C++11 标准中规定基于范围的 for 循环具有如下形式：
