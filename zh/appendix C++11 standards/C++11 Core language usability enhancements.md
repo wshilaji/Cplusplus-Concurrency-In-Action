@@ -465,24 +465,89 @@ attribute 用来声明属性。
     #include <algorithm>
     #include <functional>
      
-    int main()
-    {
-        std::vector<int> c { 1,2,3,4,5,6,7 };
-        int x = 5;
-        c.erase(std::remove_if(c.begin(), c.end(), [x](int n) { return n < x; } ), c.end());
-     
-        std::cout << "c: ";
-        for (auto i: c) {
-            std::cout << i << ' ';
-        }
-        std::cout << '\n';
-     
-        auto func1 = [](int i) { return i + 4; };
-        std::cout << "func1: " << func1(6) << '\n'; 
-     
-        std::function<int(int)> func2 = [](int i) { return i + 4; };
-        std::cout << "func2: " << func2(6) << '\n'; 
-    }
+   	{
+
+		//嵌套Lambda
+		int m = [](int x) { return [](int y) { return y * 2; }(x)+6; }(5);
+		std::cout << "m:" << m << std::endl;            		//输出m:16
+
+		 m = [](int x) { return [](int y) { return y * 2; }(x)+10; }(6);
+		std::cout << "m:" << m << std::endl;       //输出m:22  看来是将6==> 6*2 ==>12+10   note:不是将(x)+10整体传进去   { return y * 2; }(x)优先级比（x）+10高
+
+		std::cout << "n:" << [](int x, int y) { return x + y; }(5, 4) << std::endl;            //输出n:9
+
+		/*-----*/
+		auto gFunc = [](int x) -> std::function<int(int)> { return [=](int y) { return x + y; }; };// auto自动替换为std::function<int(int)> 类型
+		auto lFunc = gFunc(4);
+		std::cout << lFunc(5) << std::endl;//9
+		/*-----*/
+
+		auto hFunc = [](const std::function<int(int)>& f, int z) { return f(z) + 1; };//7+8+1
+		auto a = hFunc(gFunc(7), 8);
+		std::cout << a << std::endl;//16
+	}	
+	{
+		int a = 111, b = 222;
+		auto func = [=, &b]()mutable { a = 22; b = 333; std::cout << "a:" << a << " b:" << b << std::endl; };
+
+		func();
+		std::cout << "a:" << a << " b:" << b << std::endl;
+
+		a = 333;
+		auto func2 = [=, &a] { a = 444; std::cout << "a:" << a << " b:" << b << std::endl; };
+		func2();
+
+		auto func3 = [](int x) ->std::function<int(int)> { return [=](int y) { return x + y; }; };
+
+
+		std::function<void(int x)> f_display_42 = [](int x) { print_num(x); };
+		f_display_42(44);
+	}
+	{
+		{
+
+			using namespace std;
+
+			// Assign the lambda expression that adds two numbers to an auto variable.
+			auto f1 = [](int x, int y) { return x + y; };
+
+			cout << f1(2, 3) << endl;
+
+			// Assign the same lambda expression to a function object.
+			function<int(int, int)> f2 = [](int x, int y) { return x + y; };
+
+			cout << f2(3, 4) << endl;
+		}
+	}
+
+	{
+		//高阶 Lambda 函数
+		{
+			using namespace std;
+
+			// The following code declares a lambda expression that returns
+			// another lambda expression that adds two numbers.
+			// The returned lambda expression captures parameter x by value.
+			auto addtwointegers = [](int x) -> function<int(int)> {
+				return [=](int y) { return x + y; };
+			};
+
+			// The following code declares a lambda expression that takes another
+			// lambda expression as its argument.
+			// The lambda expression applies the argument z to the function f
+			// and multiplies by 2.
+			auto higherorder = [](const function<int(int)>& f, int z) {
+				return f(z) * 2;
+			};
+
+			// Call the lambda expression that is bound to higherorder.
+			auto answer = higherorder(addtwointegers(7), 8);
+
+			// Print the result, which is (7+8)*2.
+			cout << answer << endl;
+		}
+
+	}
 
 ### 3.6 另一种可选的函数语法 ###
 
@@ -709,7 +774,7 @@ C++11 引入了一种特别的 "枚举类"，可以避免上述的问题。使�
 Class template std::function is a general-purpose polymorphic function wrapper. Instances of std::function can store, copy, and invoke any Callable target -- functions, lambda expressions, bind expressions, or other function objects, as well as pointers to member functions and pointers to data members.The stored callable object is called the target of std::function. If a std::function contains no target, it is called empty. Invoking the target of an empty std::function results in std::bad_function_call exception being thrown.
 std::function satisfies the requirements of CopyConstructible and CopyAssignable.
 
-	#include <functional>
+	__#include <functional>__
 	#include <iostream>
 	//std::function  <===#include <functional>
 	//保存lambda表达式
