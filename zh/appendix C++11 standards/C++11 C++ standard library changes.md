@@ -337,3 +337,8 @@ now() 获取当前时钟
            steady_clock::time_point t2 = steady_clock::now();  
            duration<double> time_span = duration_cast<duration<double>>(t2 - t1);  
            std::cout << "It took me " << time_span.count() << " seconds.";
+                或者直接
+           auto t1 = chrono::steady_clock::now();
+           auto t2 = chrono::steady_clock::now();
+	   auto dt = chrono::duration_cast<chrono::duration<double> >(t2 - t1).count();
+	   cout << "Time cost of Normal estimation: " << dt << endl;
