@@ -308,20 +308,34 @@ thread&amp; operator=(const thread&amp;) = delete;
 
 - `get_id`: 获取线程 ID，返回一个类型为 `std::thread::id` 的对象。请看下面例子：
 
-        #include <iostream>
-        #include <thread>
-        #include <chrono>         
-        void foo()
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }         
-        int main()
-        {
-            std::thread t1(foo);
-            std::thread::id t1_id = t1.get_id();            
-            std::cout << "t1's id: " << t1_id << '\n';  
-            t1.join();
-        }
+		void hello() {
+			std::cout << "Hello from thread " << std::this_thread::get_id() << std::endl;}
+		int main() {
+			std::vector<std::thread> threads;
+			for (int i = 0; i < 5; ++i) {
+				threads.push_back(std::thread(hello));
+			}
+			for (auto& thread : threads) {
+				thread.join();
+			}
+			std::cin.get();
+			return 0;
+		} 
+依次启动线程并将他们存入 vector 是管理多个线程的常用伎俩，这样你便可以轻松地改变线程的数量。
+回到正题，就算是上面这样短小简单的例子，也不能断定其输出结果。理论情况是：  
+Hello from thread 140276650997504  
+Hello from thread 140276667782912  
+Hello from thread 140276659390208  
+Hello from thread 140276642604800  
+Hello from thread 140276676175616  
+   但实际上（至少在我这里）上述情况并不常见，你很可能得到的是如下结果：   
+Hello from thread Hello from thread Hello from thread 139810974787328Hello from thread 139810983180032Hello from thread
+139810966394624
+139810991572736
+139810958001920   
+这是因为线程之间存在 interleaving 。你没办法控制线程的执行顺序，某个线程可能随时被抢占，
+又因为输出到 ostream 分几个步骤（首先输出一个 string，然后是 ID，最后输出换行），
+因此一个线程可能执行了第一个步骤后就被其他线程抢占了，直到其他所有线程打印完之后才能进行后面的步骤。
 
 - `joinable`: 检查线程是否可被 join。检查当前的线程对象是否表示了一个活动的执行线程，由默认构造函数创建的线程是不能被 join 的。另外，如果某个线程 已经执行完任务，但是没有被 join 的话，该线程依然会被认为是一个活动的执行线程，因此也是可以被 join 的。
 
