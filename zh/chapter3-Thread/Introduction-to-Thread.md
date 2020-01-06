@@ -659,3 +659,29 @@ If you don’t need to wait for a thread to finish, you can avoid this exception
 
     Hello waiter
     Waited 2000 ms
+    
+## `deadlock` 死锁情况 ##
+
+		mutex m1, m2;
+		int main()
+		{
+			thread t1;
+			thread t2;
+			t1 = thread([&t2] {
+				cout << "thread-1 start!" << endl;
+				std::chrono::seconds dura(2);
+				std::this_thread::sleep_for(dura);
+				t2.join();
+				cout << "thread-1 finished!" << endl;
+			});
+			t2 = thread([&t1] {
+				cout << "thread-2 start!" << endl;
+				std::chrono::seconds dura(2);
+				std::this_thread::sleep_for(dura);
+				t1.join();
+				cout << "thread-2 finished!" << endl;
+			});			
+			return 0;
+		}
+
+
