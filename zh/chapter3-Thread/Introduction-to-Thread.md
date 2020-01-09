@@ -124,12 +124,6 @@ thread(thread&amp;&amp; x) noexcept;
 
 std::thread 各种构造函数例子如下（[参考](http://en.cppreference.com/w/cpp/thread/thread/thread)）：
 
-    #include <iostream>
-    #include <utility>
-    #include <thread>
-    #include <chrono>
-    #include <functional>
-    #include <atomic> 
     void f1(int n)
     {
         for (int i = 0; i < 5; ++i) {
@@ -226,37 +220,6 @@ thread&amp; operator=(const thread&amp;) = delete;
 1. Move 赋值操作(1)，如果当前对象不可 `joinable`，需要传递一个右值引用(`rhs`)给 `move` 赋值操作；如果当前对象可被 `joinable`，则会调用 `terminate`() 报错。
 2. 拷贝赋值操作(2)，被禁用，因此 `std::thread` 对象不可拷贝赋值。
 
-请看下面的例子：
-
-    #include <stdio.h>
-    #include <stdlib.h>
-
-    #include <chrono>    // std::chrono::seconds
-    #include <iostream>  // std::cout
-    #include <thread>    // std::thread, std::this_thread::sleep_for
-
-    void thread_task(int n) {
-        std::this_thread::sleep_for(std::chrono::seconds(n));
-        std::cout << "hello thread "
-            << std::this_thread::get_id()
-            << " paused " << n << " seconds" << std::endl;
-    }
-
-    int main(int argc, const char *argv[])
-    {
-        std::thread threads[5];
-        std::cout << "Spawning 5 threads...\n";
-        for (int i = 0; i < 5; i++) {
-            threads[i] = std::thread(thread_task, i + 1);
-        }
-        std::cout << "Done spawning threads! Now wait for them to join\n";
-        for (auto& t: threads) {
-            t.join();
-        }
-        std::cout << "All threads joined.\n";
-
-        return EXIT_SUCCESS;
-    }
 #### `std::thread` 传递参数 ####
 
 	void func(int *a, int n) {}
