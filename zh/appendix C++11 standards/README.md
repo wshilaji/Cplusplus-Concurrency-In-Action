@@ -41,7 +41,8 @@ Boostcon:
 
 1. 右值引用和 move 语义
 2. 泛化的常量表达式 constexpr
-3. 对 POD 类型定义的修正。
+3 static
+4. 对 POD 类型定义的修正。
 
 ## 2. [核心语言的构建时性能强化](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/C%2B%2B11%20Core%20language%20build%20time%20performance%20enhancements.md) ##
 
