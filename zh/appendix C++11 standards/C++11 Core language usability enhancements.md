@@ -768,7 +768,130 @@ C++11 引入了一种特别的 "枚举类"，可以避免上述的问题。使�
       Point p;  // 在 C++03 标准中非法; Point 有一 non-trivial 构造函数
                 // 但是在 C++11 标准中合法
     };
+   
+### C/C++杂记：深入理解数据成员指针、函数成员指针 ###
 
+1. 数据成员指针
+对于普通指针变量来说，其值是它所指向的地址，0表示空指针。而对于数据成员指针变量来说，其值是数据成员所在地址相对于对象起始地址的偏移值，空指针用-1表示。例：View Code
+
+	struct X {
+	    int a;
+	    int b;
+	};
+	#define VALUE_OF_PTR(p)     (*(long*)&p)
+	int main() {
+	    int X::*p = 0;  // VALUE_OF_PTR(p) == -1
+	    p = &X::a;      // VALUE_OF_PTR(p) == 0
+	    p = &X::b;      // VALUE_OF_PTR(p) == 4
+	    return 0;
+	}
+
+ 
+
+2. 函数成员指针
+函数成员指针与普通函数指针相比，其size为普通函数指针的两倍（x64下为16字节），分为：ptr和adj两部分。     
+(1) 非虚函数成员指针     
+ptr部分内容为函数指针（指向一个全局函数，该函数的第一个参数为this指针），adj部分始终为0。例：
+
+	extern "C" int printf(const char*, ...);
+
+	struct B {
+	    void foo() {  printf("B::foo(): this = 0x%p\n", this); }
+	};
+	struct D : public B {
+	    void bar() { printf("D::bar(): this = 0x%p\n", this); }
+	};
+	void (B::*pbfoo)() = &B::foo; // ptr: points to _ZN1B3fooEv, adj: 0
+	void (D::*pdfoo)() = &D::foo; // ptr: points to _ZN1B3fooEv, adj: 0
+	void (D::*pdbar)() = &D::bar; // ptr: points to _ZN1D3barEv, adj: 0
+
+	extern "C" void _ZN1B3fooEv(B*);
+	extern "C" void _ZN1D3barEv(D*);
+	#define PART1_OF_PTR(p)     (((long*)&p)[0])
+	#define PART2_OF_PTR(p)     (((long*)&p)[1])
+
+	int main() {
+	    printf("&B::foo->ptr: 0x%lX\n", PART1_OF_PTR(pbfoo));
+	    printf("&B::foo->adj: 0x%lX\n", PART2_OF_PTR(pbfoo));    // 0
+	    printf("&D::foo->ptr: 0x%lX\n", PART1_OF_PTR(pdfoo));
+	    printf("&D::foo->adj: 0x%lX\n", PART2_OF_PTR(pdfoo));    // 0
+	    printf("&D::bar->ptr: 0x%lX\n", PART1_OF_PTR(pdbar));
+	    printf("&D::bar->adj: 0x%lX\n", PART2_OF_PTR(pdbar));    // 0
+
+	    D* d = new D();
+	    d->foo();
+	    _ZN1B3fooEv(d); // equal to d->foo()
+	    d->bar();
+	    _ZN1D3barEv(d); // equal to d->bar()
+	    return 0;
+	} 
+	
+	
+
+(2) 虚函数成员指针    
+ptr部分内容为虚函数对应的函数指针在虚函数表中的偏移地址加1（之所以加1是为了用0表示空指针），而adj部分为调节this指针的偏移字节数。例：      
+说明：     
+A和B都没有基类，但是都有虚函数，因此各有一个虚函数指针（假设为vptr）。      
+C同时继承了A和B，因此会继承两个虚函数指针，但是为了节省空间，C会与主基类A公用一个虚函数指针（即上图中vptr1），继承自B的虚函数指针假设为vptr2。    
+C没有重写继承自A和B的虚函数，因此在C的虚函数表中存在A::foo和B::bar函数指针（如果C中重写了foo()，则C的虚函数表中A::foo会被替换为C::foo）。
+C中有两个虚函数指针vptr1和vptr2，相当于有两张虚函数表。        
+A::foo（C::foo）、B::Bar（C::bar）都在虚函数表中偏移地址为0的位置，因此ptr为1（0+1=1）。而C::quz在偏移为8的位置，因此ptr为9（8+1=9）。
+当我们使用pc调用C::bar()时，如：“(pc->*pcbar)()”，实际上调用的是B::bar()（即_ZN1B3barEv(pc)），pc需要被转换为B*类型指针，因此需要对this指针进行调节（调节至pb指向的地址），因此adj为8。
+代码示例：
+
+
+	extern "C" int printf(const char*, ...);
+
+	struct A {
+	    virtual void foo() { printf("A::foo(): this = 0x%p\n", this); }
+	};
+	struct B {
+	    virtual void bar() { printf("B::bar(): this = 0x%p\n", this); }
+	};
+	struct C : public A, public B {
+	    virtual void quz() { printf("C::quz(): this = 0x%p\n", this); }
+	};
+
+	void (A::*pafoo)() = &A::foo;   // ptr: 1, adj: 0
+	void (B::*pbbar)() = &B::bar;   // ptr: 1, adj: 0
+	void (C::*pcfoo)() = &C::foo;   // ptr: 1, adj: 0
+	void (C::*pcquz)() = &C::quz;   // ptr: 9, adj: 0
+	void (C::*pcbar)() = &C::bar;   // ptr: 1, adj: 8
+
+	#define PART1_OF_PTR(p)     (((long*)&p)[0])
+	#define PART2_OF_PTR(p)     (((long*)&p)[1])
+	int main() {
+	    printf("&A::foo->ptr: 0x%lX, ", PART1_OF_PTR(pafoo));   // 1
+	    printf("&A::foo->adj: 0x%lX\n", PART2_OF_PTR(pafoo));   // 0
+	    printf("&B::bar->ptr: 0x%lX, ", PART1_OF_PTR(pbbar));   // 1
+	    printf("&B::bar->adj: 0x%lX\n", PART2_OF_PTR(pbbar));   // 0
+	    printf("&C::foo->ptr: 0x%lX, ", PART1_OF_PTR(pcfoo));   // 1
+	    printf("&C::foo->adj: 0x%lX\n", PART2_OF_PTR(pcfoo));   // 0
+	    printf("&C::quz->ptr: 0x%lX, ", PART1_OF_PTR(pcquz));   // 9
+	    printf("&C::quz->adj: 0x%lX\n", PART2_OF_PTR(pcquz));   // 0
+	    printf("&C::bar->ptr: 0x%lX, ", PART1_OF_PTR(pcbar));   // 1
+	    printf("&C::bar->adj: 0x%lX\n", PART2_OF_PTR(pcbar));   // 8
+	    return 0;
+	}
+	
+	class A
+	{
+	public:
+		A(int i):z(i){};
+		int z;
+	};
+	void main()
+	{
+		A ob(5);
+		A *pc1;
+		pc1 = &ob;
+		int A::*pc2;
+		pc2 = &A::z;
+		cout<<ob.*pc2<<endl;
+		cout<<pc1->*pc2<<endl;
+		cout<<ob.z<<endl;
+	}
+	
 ### 3.15 std::Fuction<> ###
 
 Class template std::function is a general-purpose polymorphic function wrapper. Instances of std::function can store, copy, and invoke any Callable target -- functions, lambda expressions, bind expressions, or other function objects, as well as pointers to member functions and pointers to data members.The stored callable object is called the target of std::function. If a std::function contains no target, it is called empty. Invoking the target of an empty std::function results in std::bad_function_call exception being thrown.
