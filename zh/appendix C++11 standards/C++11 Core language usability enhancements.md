@@ -774,17 +774,17 @@ C++11 引入了一种特别的 "枚举类"，可以避免上述的问题。使�
 1. 数据成员指针
 对于普通指针变量来说，其值是它所指向的地址，0表示空指针。而对于数据成员指针变量来说，其值是数据成员所在地址相对于对象起始地址的偏移值，空指针用-1表示。例：View Code
 
-	struct X {
-	    int a;
-	    int b;
-	};
-	#define VALUE_OF_PTR(p)     (*(long*)&p)
-	int main() {
-	    int X::*p = 0;  // VALUE_OF_PTR(p) == -1
-	    p = &X::a;      // VALUE_OF_PTR(p) == 0
-	    p = &X::b;      // VALUE_OF_PTR(p) == 4
-	    return 0;
-	}
+		struct X {
+		    int a;
+		    int b;
+		};
+		#define VALUE_OF_PTR(p)     (*(long*)&p)
+		int main() {
+		    int X::*p = 0;  // VALUE_OF_PTR(p) == -1
+		    p = &X::a;      // VALUE_OF_PTR(p) == 0
+		    p = &X::b;      // VALUE_OF_PTR(p) == 4
+		    return 0;
+		}
 
  
 
@@ -793,40 +793,56 @@ C++11 引入了一种特别的 "枚举类"，可以避免上述的问题。使�
 (1) 非虚函数成员指针     
 ptr部分内容为函数指针（指向一个全局函数，该函数的第一个参数为this指针），adj部分始终为0。例：
 
-	extern "C" int printf(const char*, ...);
 
-	struct B {
-	    void foo() {  printf("B::foo(): this = 0x%p\n", this); }
-	};
-	struct D : public B {
-	    void bar() { printf("D::bar(): this = 0x%p\n", this); }
-	};
-	void (B::*pbfoo)() = &B::foo; // ptr: points to _ZN1B3fooEv, adj: 0
-	void (D::*pdfoo)() = &D::foo; // ptr: points to _ZN1B3fooEv, adj: 0
-	void (D::*pdbar)() = &D::bar; // ptr: points to _ZN1D3barEv, adj: 0
+		extern "C" int printf(const char*, ...);
 
-	extern "C" void _ZN1B3fooEv(B*);
-	extern "C" void _ZN1D3barEv(D*);
-	#define PART1_OF_PTR(p)     (((long*)&p)[0])
-	#define PART2_OF_PTR(p)     (((long*)&p)[1])
+		struct B {
+		    void foo() {  printf("B::foo(): this = 0x%p\n", this); }
+		};
+		struct D : public B {
+		    void bar() { printf("D::bar(): this = 0x%p\n", this); }
+		};
+		void (B::*pbfoo)() = &B::foo; // ptr: points to _ZN1B3fooEv, adj: 0
+		void (D::*pdfoo)() = &D::foo; // ptr: points to _ZN1B3fooEv, adj: 0
+		void (D::*pdbar)() = &D::bar; // ptr: points to _ZN1D3barEv, adj: 0
 
-	int main() {
-	    printf("&B::foo->ptr: 0x%lX\n", PART1_OF_PTR(pbfoo));
-	    printf("&B::foo->adj: 0x%lX\n", PART2_OF_PTR(pbfoo));    // 0
-	    printf("&D::foo->ptr: 0x%lX\n", PART1_OF_PTR(pdfoo));
-	    printf("&D::foo->adj: 0x%lX\n", PART2_OF_PTR(pdfoo));    // 0
-	    printf("&D::bar->ptr: 0x%lX\n", PART1_OF_PTR(pdbar));
-	    printf("&D::bar->adj: 0x%lX\n", PART2_OF_PTR(pdbar));    // 0
+		extern "C" void _ZN1B3fooEv(B*);
+		extern "C" void _ZN1D3barEv(D*);
+		#define PART1_OF_PTR(p)     (((long*)&p)[0])
+		#define PART2_OF_PTR(p)     (((long*)&p)[1])
 
-	    D* d = new D();
-	    d->foo();
-	    _ZN1B3fooEv(d); // equal to d->foo()
-	    d->bar();
-	    _ZN1D3barEv(d); // equal to d->bar()
-	    return 0;
-	} 
-	
-	
+		int main() {
+		    printf("&B::foo->ptr: 0x%lX\n", PART1_OF_PTR(pbfoo));
+		    printf("&B::foo->adj: 0x%lX\n", PART2_OF_PTR(pbfoo));    // 0
+		    printf("&D::foo->ptr: 0x%lX\n", PART1_OF_PTR(pdfoo));
+		    printf("&D::foo->adj: 0x%lX\n", PART2_OF_PTR(pdfoo));    // 0
+		    printf("&D::bar->ptr: 0x%lX\n", PART1_OF_PTR(pdbar));
+		    printf("&D::bar->adj: 0x%lX\n", PART2_OF_PTR(pdbar));    // 0
+
+		    D* d = new D();
+		    d->foo();
+		    _ZN1B3fooEv(d); // equal to d->foo()
+		    d->bar();
+		    _ZN1D3barEv(d); // equal to d->bar()
+		    return 0;
+		} 
+		class A
+		{
+		public:
+			A(int i):z(i){};
+			int z;
+		};
+		void main()
+		{
+			A ob(5);
+			A *pc1;
+			pc1 = &ob;
+			int A::*pc2;
+			pc2 = &A::z;
+			cout<<ob.*pc2<<endl;
+			cout<<pc1->*pc2<<endl;
+			cout<<ob.z<<endl;
+		}
 
 (2) 虚函数成员指针    
 ptr部分内容为虚函数对应的函数指针在虚函数表中的偏移地址加1（之所以加1是为了用0表示空指针），而adj部分为调节this指针的偏移字节数。例：      
@@ -874,23 +890,6 @@ A::foo（C::foo）、B::Bar（C::bar）都在虚函数表中偏移地址为0的�
 	    return 0;
 	}
 	
-	class A
-	{
-	public:
-		A(int i):z(i){};
-		int z;
-	};
-	void main()
-	{
-		A ob(5);
-		A *pc1;
-		pc1 = &ob;
-		int A::*pc2;
-		pc2 = &A::z;
-		cout<<ob.*pc2<<endl;
-		cout<<pc1->*pc2<<endl;
-		cout<<ob.z<<endl;
-	}
 	
 ### 3.15 std::Fuction<> ###
 
