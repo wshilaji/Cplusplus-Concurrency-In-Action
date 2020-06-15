@@ -103,7 +103,7 @@ Boostcon:
 11. 用于计算函数对象返回类型的统一方法
 12.  std::chrono库详解
 
-## 6.[C++ 奇淫巧技](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/c%2B%2B11%20Fantastic%20Skills) ##
+## 6.[C++ 奇淫巧技](https://github.com/wshilaji/Cplusplus-Concurrency-In-Action/blob/master/zh/appendix%20C%2B%2B11%20standards/c%2B%2B11%E5%A5%87%E6%8A%80%E6%B7%AB%E5%B7%A7.md) ##
 
 本小节主要包括：
 
