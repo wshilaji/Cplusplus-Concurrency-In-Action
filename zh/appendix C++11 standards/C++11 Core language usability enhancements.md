@@ -1071,11 +1071,7 @@ bind1st 和 bind2nd 现在已经淘汰掉了，但是说一下
 
 		//	struct less
 		/*
-			{	// functor for operator<
-			_CXX17_DEPRECATE_ADAPTOR_TYPEDEFS typedef _Ty first_argument_type;
-			_CXX17_DEPRECATE_ADAPTOR_TYPEDEFS typedef _Ty second_argument_type;
-			_CXX17_DEPRECATE_ADAPTOR_TYPEDEFS typedef bool result_type;
-
+			{
 			constexpr bool operator()(const _Ty& _Left, const _Ty& _Right) const
 				{	// apply operator< to operands
 				return (_Left < _Right);
@@ -1106,62 +1102,4 @@ bind1st 和 bind2nd 现在已经淘汰掉了，但是说一下
 			std::for_each(vecRet.begin(), vecRet.end(), disp_v);//1, jack  3, jane
 		}
 
-		//copy_if:
-		template <class InputIterator, class OutputIterator, class UnaryPredicate>
-		OutputIterator copy_if(InputIterator first, InputIterator last,
-			OutputIterator result, UnaryPredicate pred)
-		{
-			while (first != last) {
-				if (pred(*first)) {
-					*result = *first;
-					++result;
-				}
-				++first;
-			}
-			return result;
-		}
-
-		template<class _Arg,
-			class _Result>
-			struct unary_function
-		{	// base class for unary functions
-			typedef _Arg argument_type;
-			typedef _Result result_type;
-		};
-		//std::binder1st
-		template <class Operation> class binder1st
-			: public unary_function <typename Operation::second_argument_type,	typename Operation::result_type>
-		{
-		protected:
-			Operation op;
-			typename Operation::first_argument_type value;
-		public:
-			binder1st(const Operation& x,
-				const typename Operation::first_argument_type& y) : op(x), value(y) {}
-			typename Operation::result_type
-				operator() (const typename Operation::second_argument_type& x) const
-			{
-				return op(value, x);
-			}
-		};
-		//std::bind1st
-		template <class Operation, class T>
-			binder1st<Operation> bind1st(const Operation& op, const T& x)
-		{
-			return binder1st<Operation>(op, typename Operation::first_argument_type(x));
-		}
-		//std::remove_if
-			template <class ForwardIterator, class UnaryPredicate>
-			ForwardIterator remove_if(ForwardIterator first, ForwardIterator last,
-				UnaryPredicate pred)
-			{
-				ForwardIterator result = first;
-				while (first != last) {
-					if (!pred(*first)) {
-						*result = std::move(*first);
-						++result;
-					}
-					++first;
-				}
-				return result;
-			}
+		
