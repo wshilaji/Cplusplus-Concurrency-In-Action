@@ -978,3 +978,190 @@ num_: 314159
 	5
 	18
 */
+### 3.16 std::bind<> ###
+
+		#include <functional>   // std::binary_function 
+		#include <iostream>
+
+		void Func(int x, int y) { ; }
+		class A
+		{
+		public:
+			int Func(int x, int y) { return 0; }
+		};
+		void main444()
+		{
+			auto bf1 = std::bind(Func, 10, std::placeholders::_1);
+			bf1(20); ///< same as Func(10, 20)  
+			A a;
+			auto bf2 = std::bind(&A::Func, a, std::placeholders::_1, std::placeholders::_2);
+
+			bf2(10, 20); ///< same as a.Func(10, 20)  
+
+			std::function<int(int)> bf3 = std::bind(&A::Func, a, std::placeholders::_1, 100);
+			bf3(10); ///< same as a.Func(10, 100)  
+		}
+		  /*源码#include <functional> 
+		  template <class Arg1, class Arg2, class Result>
+		  struct binary_function {
+			  typedef Arg1 first_argument_type;
+			  typedef Arg2 second_argument_type;
+			  typedef Result result_type;
+		  };
+		  */
+		struct Compare : public std::binary_function<int, int, bool> {
+			bool operator() (int a, int b) { return (a == b); }
+		};
+
+		int main() {
+			Compare Compare_object;
+			Compare::first_argument_type input1;
+			Compare::second_argument_type input2;
+			Compare::result_type result;
+
+			std::cout << "Please enter first number: ";
+			std::cin >> input1;
+			std::cout << "Please enter second number: ";
+			std::cin >> input2;
+
+			result = Compare_object(input1, input2);
+
+			std::cout << "Numbers " << input1 << " and " << input2;
+			if (result)
+				std::cout << " are equal.\n";
+			else
+				std::cout << " are not equal.\n";		
+			return 0;
+		}
+		
+bind1st 和 bind2nd 现在已经淘汰掉了，但是说一下
+
+		#include <iostream>
+		#include <vector>
+		#include <string>
+		#include <iterator>
+		#include <algorithm>
+		#include <functional>
+
+		/**
+		* std::bind1st  std::bind2nd 就是将一个二元函数的一个参数设置为定值，这样二元函数就转换为了一元函数
+		* 因为有些算法的参数要求必须是一元函数，但是我们又想用二元函数，那么就可以使用这两个函数
+		*/
+		/**
+		*@brief std::less 仿函数的内部实现
+			template <class T> struct less : binary_function <T,T,bool> {
+				bool operator() (const T& x, const T& y) const {return x<y;}
+			};
+		*/
+
+		struct person {
+			int age;
+			std::string name;
+		};
+
+		struct person_filter_func : public std::binary_function<person, std::string, bool>
+		{
+			bool operator()(const person& p, const std::string& key) const {
+				return (p.name.find(key) != std::string::npos);
+			}
+		};
+
+		void disp(int val) { std::cout << val << std::endl; }
+		void disp_v(const person& p) { std::cout << p.age << "," << p.name << std::endl; }
+
+		//	struct less
+		/*
+			{	// functor for operator<
+			_CXX17_DEPRECATE_ADAPTOR_TYPEDEFS typedef _Ty first_argument_type;
+			_CXX17_DEPRECATE_ADAPTOR_TYPEDEFS typedef _Ty second_argument_type;
+			_CXX17_DEPRECATE_ADAPTOR_TYPEDEFS typedef bool result_type;
+
+			constexpr bool operator()(const _Ty& _Left, const _Ty& _Right) const
+				{	// apply operator< to operands
+				return (_Left < _Right);
+				}
+			};
+		*/
+		int main()
+		{
+			//使用 std::less 仿函数
+			int arr[] = { 1,2,3,4,5,6,7,8,9 };
+			std::vector<int> vec;
+			std::copy_if(std::begin(arr), std::end(arr), std::back_inserter(vec), std::bind1st(std::less<int>(), 6)); //将6 绑定为第一个参数，即 6 < value
+			std::for_each(vec.begin(), vec.end(), disp);  // 7 8 9
+
+			vec.clear();
+			std::copy_if(std::begin(arr), std::end(arr), std::back_inserter(vec), std::bind2nd(std::less<int>(), 6)); //将6 绑定为第二个参数，即 value < 6
+			std::for_each(vec.begin(), vec.end(), disp); //1 2 3 4 5
+
+
+			//使用自定义的仿函数
+			std::vector<person> vecP;
+			person p1 = { 1,"jack" }; vecP.push_back(p1);
+			person p2 = { 2,"rose" }; vecP.push_back(p2);
+			person p3 = { 3,"jane" }; vecP.push_back(p3);
+
+			std::vector<person> vecRet;
+			std::copy_if(vecP.begin(), vecP.end(), std::back_inserter(vecRet), std::bind2nd(person_filter_func(), "ja"));  //将包含关键字"ja"的person，复制到vecRet容器中
+			std::for_each(vecRet.begin(), vecRet.end(), disp_v);//1, jack  3, jane
+		}
+
+		//copy_if:
+		template <class InputIterator, class OutputIterator, class UnaryPredicate>
+		OutputIterator copy_if(InputIterator first, InputIterator last,
+			OutputIterator result, UnaryPredicate pred)
+		{
+			while (first != last) {
+				if (pred(*first)) {
+					*result = *first;
+					++result;
+				}
+				++first;
+			}
+			return result;
+		}
+
+		template<class _Arg,
+			class _Result>
+			struct unary_function
+		{	// base class for unary functions
+			typedef _Arg argument_type;
+			typedef _Result result_type;
+		};
+		//std::binder1st
+		template <class Operation> class binder1st
+			: public unary_function <typename Operation::second_argument_type,	typename Operation::result_type>
+		{
+		protected:
+			Operation op;
+			typename Operation::first_argument_type value;
+		public:
+			binder1st(const Operation& x,
+				const typename Operation::first_argument_type& y) : op(x), value(y) {}
+			typename Operation::result_type
+				operator() (const typename Operation::second_argument_type& x) const
+			{
+				return op(value, x);
+			}
+		};
+		//std::bind1st
+		template <class Operation, class T>
+			binder1st<Operation> bind1st(const Operation& op, const T& x)
+		{
+			return binder1st<Operation>(op, typename Operation::first_argument_type(x));
+		}
+		//std::remove_if
+			template <class ForwardIterator, class UnaryPredicate>
+			ForwardIterator remove_if(ForwardIterator first, ForwardIterator last,
+				UnaryPredicate pred)
+			{
+				ForwardIterator result = first;
+				while (first != last) {
+					if (!pred(*first)) {
+						*result = std::move(*first);
+						++result;
+					}
+					++first;
+				}
+				return result;
+			}
