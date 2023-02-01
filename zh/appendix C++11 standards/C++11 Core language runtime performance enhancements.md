@@ -266,12 +266,11 @@ rvalue   <br>
  
 std::move 函数源码如下（可在 VS 工具中右键函数名转到定义查看源码）：
 
-// TEMPLATE FUNCTION move
-template<class _Ty> inline
-	constexpr typename remove_reference<_Ty>::type&&
-		move(_Ty&& _Arg) _NOEXCEPT
+	// TEMPLATE FUNCTION move
+	template<class _Ty> inline
+	constexpr typename remove_reference<_Ty>::type&&  move(_Ty&& _Arg) _NOEXCEPT
 	{	// forward _Arg as movable
-    	return (static_cast<typename remove_reference<_Ty>::type&&>(_Arg));
+    		return (static_cast<typename remove_reference<_Ty>::type&&>(_Arg));
 	}
 代码中 std::remove_reference<T>::type 作用是脱去引用剩下类型本身，假设 T 为 X&、X&&，则 std::remove_reference<T>::type 为 X；
 
