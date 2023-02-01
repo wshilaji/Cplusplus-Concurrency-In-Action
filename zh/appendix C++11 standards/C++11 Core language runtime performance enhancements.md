@@ -260,6 +260,19 @@ rvalue   <br>
     }
 
 这个工厂函数的参数是右值引用类型，内部使用std::forward按照参数的实际类型进行转发，如果参数的实际类型是右值，那么创建的时候会自动匹配移动构造，如果是左值则会匹配拷贝构造。
+ 
+std::move 函数源码如下（可在 VS 工具中右键函数名转到定义查看源码）：
+
+// TEMPLATE FUNCTION move
+template<class _Ty> inline
+	constexpr typename remove_reference<_Ty>::type&&
+		move(_Ty&& _Arg) _NOEXCEPT
+	{	// forward _Arg as movable
+    	return (static_cast<typename remove_reference<_Ty>::type&&>(_Arg));
+	}
+代码中 std::remove_reference<T>::type 作用是脱去引用剩下类型本身，假设 T 为 X&、X&&，则 std::remove_reference<T>::type 为 X；
+
+注意 std::move 的主要作用是将一个左值转换为右值，因此如果某个函数代码和上述相近，则该函数功能和 std::move 一致。
 
 ### 1.2 泛化的常量表达式 constexpr ###
 
