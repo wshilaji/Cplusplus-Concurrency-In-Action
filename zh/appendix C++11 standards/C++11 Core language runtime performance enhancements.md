@@ -235,13 +235,16 @@ destruct   <br>
     
 都不能按照参数的本来的类型进行转发。C++11引入了完美转发：在函数模板中，完全依照模板的参数的类型（即保持参数的左值、右值特征），将参数传递给函数模板中调用的另外一个函数。C++11中的std::forward正是做这个事情的，他会按照参数的实际类型进行转发。看下面的例子：
 
-    void processValue(int& a){ cout << "lvalue" << endl; }
+    void processValue(int& a){ cout << "lvalue" << endl; } 
+	
     void processValue(int&& a){ cout << "rvalue" << endl; }
+	 
     template <typename T>
     void forwardValue(T&& val)
     {
         processValue(std::forward<T>(val)); //照参数本来的类型进行转发。
     }
+	 
     void Testdelcl()
     {
         int i = 0;
